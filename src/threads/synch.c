@@ -29,8 +29,10 @@
 #include "threads/synch.h"
 #include <stdio.h>
 #include <string.h>
+#include "stdbool.h"
 #include "threads/interrupt.h"
 #include "threads/thread.h"
+#include "threads/malloc.h"
 
 /* Initializes semaphore SEMA to VALUE.  A semaphore is a
    nonnegative integer along with two atomic operators for
@@ -61,7 +63,7 @@ void sema_down(struct semaphore* sema) {
   ASSERT(sema != NULL);
   ASSERT(!intr_context());
 
-  old_level = intr_disable();
+  old_level = intr_disable(); // This disables context switching
   while (sema->value == 0) {
     list_push_back(&sema->waiters, &thread_current()->elem);
     thread_block();
@@ -355,4 +357,50 @@ void cond_broadcast(struct condition* cond, struct lock* lock) {
 
   while (!list_empty(&cond->waiters))
     cond_signal(cond, lock);
+}
+
+/* Initialize atomic_int_t obj */
+void atomic_int_init(atomic_int_t* ai) { atomic_int_init_with(ai, 0); }
+
+void atomic_int_init_with(atomic_int_t* ai, int val) {
+  ai->val = val;
+  lock_init(&ai->mutex);
+}
+
+void atomic_int_incr(atomic_int_t* ai) {
+  lock_acquire(&ai->mutex);
+  ai->val++;
+  lock_release(&ai->mutex);
+}
+
+void atomic_int_decr(atomic_int_t* ai) {
+  lock_acquire(&ai->mutex);
+  ai->val--;
+  lock_release(&ai->mutex);
+}
+
+/* Initialize arc */
+void arc_init(arc_t* a, void* ptr) {
+  a->ptr = ptr;
+  atomic_int_init(&a->ref_ct);
+}
+
+/* Records a new reference to obj */
+void arc_borrow(arc_t* a) { atomic_int_incr(&a->ref_ct); }
+
+/* Records a reference drop. Deallocate object if last reference. */
+void arc_drop(arc_t* a, bool free_ptr, bool free_this) {
+  atomic_int_decr(&a->ref_ct);
+
+  lock_acquire(&a->ref_ct.mutex);
+  if (a->ref_ct.val == 0) {
+    if (free_ptr) {
+      free(a->ptr);
+    }
+    if (free_this) {
+      free(a);
+      return;
+    }
+  }
+  lock_release(&a->ref_ct.mutex);
 }
