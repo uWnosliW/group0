@@ -4,6 +4,7 @@
 #include "threads/interrupt.h"
 #include "threads/thread.h"
 #include "userprog/process.h"
+#include "filesys/filesys.h"
 #include "filesys/file.h"
 
 static void syscall_handler(struct intr_frame*);
@@ -30,15 +31,15 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
       break;
     }
     case SYS_OPEN: {
-      f->eax = (uint32_t)file_open((struct inode*)args[1]);
+      f->eax = (uint32_t)filesys_open((char*)args[1]);
       break;
     }
     case SYS_CLOSE: {
-      file_close((struct file*)args[1]);
+      // TODO
       break;
     }
     case SYS_WRITE: {
-      f->eax = (uint32_t)file_write((struct file*)args[1], (void*)args[2], (off_t)args[3]);
+      f->eax = (uint32_t)file_write(stdout, (void*)args[2], (off_t)args[3]);
       break;
     }
     case SYS_READ: {
