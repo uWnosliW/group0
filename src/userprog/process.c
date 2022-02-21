@@ -345,6 +345,7 @@ bool load(const char* file_name, void (**eip)(void), void** esp) {
     }
   }
 
+
   /* Set up stack. */
   if (!setup_stack(esp))
     goto done;
