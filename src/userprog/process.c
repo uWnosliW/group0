@@ -345,10 +345,61 @@ bool load(const char* file_name, void (**eip)(void), void** esp) {
     }
   }
 
-
   /* Set up stack. */
   if (!setup_stack(esp))
     goto done;
+
+  int argc = 0;
+  char *argv[128];
+  void *argv_addr[128];
+
+  char *save_ptr;
+  char *token = strtok_r(file_name, " ", &save_ptr);
+  while (token != NULL) {
+    argv[argc] = token;
+    argc += 1;
+    token = strtok_r(NULL, " ", &save_ptr);
+  }
+
+  *esp = (void (*)(void)) PHYS_BASE;
+  for (int i = argc-1; i >= 0; i--) {
+    // we add 1 b/c of null terminator
+    *esp -= strlen(argv[i]) + 1;
+    argv_addr[i] = *esp;
+    strlcpy(*esp, argv[argc], strlen(argv[i]) + 2);
+  }
+
+  // word align
+  int lower_bytes_pad = ((3 + argc)* 4) % 16;
+  int upper_bytes_pad = (-1 * (int) (*esp)) % 16;
+  size_t padding_needed = (-1 * (upper_bytes_pad + lower_bytes_pad)) % 16;
+
+  *esp -= padding_needed;
+  memset(*esp, 0, padding_needed * 1);
+
+  // null teriminator sentinel
+  *esp -= sizeof(*esp);
+  memset(*esp, 0, sizeof(int));
+
+  // pushed addresses of argv[argc]
+  for (int i = argc-1; i >= 0; i--) {
+    *esp -= sizeof(*esp);
+    memcpy(*esp, argv_addr[i], sizeof(int));
+  }
+
+  // push address of argvs
+  *esp -= sizeof(*esp);
+  memset(*esp, (int) *esp + 1, sizeof(int));
+
+  // push argc
+  *esp -= sizeof(*esp);
+  memset(*esp, argc, sizeof(int));
+  
+  // push fake address
+  *esp -= sizeof(*esp);
+  memset(*esp, 0, sizeof(int));
+
+
 
   /* Start address. */
   *eip = (void (*)(void))ehdr.e_entry;
