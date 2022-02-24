@@ -16,7 +16,7 @@ typedef tid_t pid_t;
 /* Thread functions (Project 2: Multithreading) */
 typedef void (*pthread_fun)(void*);
 typedef void (*stub_fun)(pthread_fun, void*);
-
+bool validAddress(void *ptr, int numBytes);
 /* The process control block for a given process. Since
    there can be multiple threads per process, we need a separate
    PCB from the TCB. All TCBs in a process will have a pointer
