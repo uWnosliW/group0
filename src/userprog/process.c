@@ -307,6 +307,9 @@ bool load(const char* file_name, void (**eip)(void), void** esp) {
     token = strtok_r(NULL, " ", &save_ptr);
   }
 
+  strlcpy(t->pcb->process_name, argv[0], PGSIZE);
+
+
   /* Open executable file. */
   file = filesys_open(argv[0]);
   if (file == NULL) {
