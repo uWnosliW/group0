@@ -24,6 +24,21 @@ static struct semaphore temporary;
 static thread_func start_process NO_RETURN;
 static bool load(const char* file_name, void (**eip)(void), void** esp);
 
+bool validAddress(void *ptr, int numBytes) {
+  if(ptr == NULL) {
+    return false;
+  }
+  //check start of buffer
+  if(!is_user_vaddr(ptr) || pagedir_get_page(thread_current()->pcb->pagedir,ptr) == NULL) {
+    return false;
+  }
+  //check end of buffer
+  if(!is_user_vaddr(ptr + numBytes) || pagedir_get_page(thread_current()->pcb->pagedir,ptr + numBytes) == NULL) {
+    return false;
+  }
+  return true;
+}
+
 /* Initializes user programs in the system by ensuring the main
    thread has a minimal PCB so that it can execute and wait for
    the first user process. Any additions to the PCB should be also
@@ -280,8 +295,20 @@ bool load(const char* file_name, void (**eip)(void), void** esp) {
     goto done;
   process_activate();
 
+  int argc = 0;
+  const char *argv[128];
+  void *argv_addr[128];
+
+  char *save_ptr;
+  char *token = strtok_r((char *) file_name, " ", &save_ptr);
+  while (token != NULL) {
+    argv[argc] = token;
+    argc += 1;
+    token = strtok_r(NULL, " ", &save_ptr);
+  }
+
   /* Open executable file. */
-  file = filesys_open(file_name);
+  file = filesys_open(argv[0]);
   if (file == NULL) {
     printf("load: %s: open failed\n", file_name);
     goto done;
@@ -349,6 +376,50 @@ bool load(const char* file_name, void (**eip)(void), void** esp) {
   if (!setup_stack(esp))
     goto done;
 
+
+
+  *esp = (void (*)(void)) PHYS_BASE;
+  for (int i = argc-1; i >= 0; i--) {
+    // we add 1 b/c of null terminator
+    *esp -= strlen(argv[i]) + 1;
+    argv_addr[i] = *esp;
+    strlcpy(*esp, argv[i], PGSIZE);
+  }
+
+  // word align
+  int lower_bytes_pad = ((3 + argc)* 4) % 16;
+  int upper_bytes_pad = (-1 * (int) (*esp)) % 16;
+  int padding_needed = (-1 * (upper_bytes_pad + lower_bytes_pad)) % 16;
+  if (padding_needed < 0) {
+    padding_needed += 16;
+  }
+
+  //insert the padding
+  *esp -= padding_needed;
+  memset(*esp, 0, padding_needed);
+
+  // null teriminator sentinel
+  *esp -= sizeof(*esp);
+  memset(*esp, 0, sizeof(int));
+
+  // pushed addresses of argv[argc]
+  for (int i = argc-1; i >= 0; i--) {
+    *esp -= sizeof(*esp);
+    memcpy(*esp, &argv_addr[i], sizeof(int));
+  }
+
+  // push address of argvs
+  void* address_of_argv = *esp;
+  *esp -= sizeof(*esp);
+  memcpy(*esp, &address_of_argv, sizeof(int));
+
+  // push argc
+  *esp -= sizeof(*esp);
+  memcpy(*esp, &argc, sizeof(int));
+  
+  // push fake address
+  *esp -= sizeof(*esp);
+
   /* Start address. */
   *eip = (void (*)(void))ehdr.e_entry;
 
@@ -356,7 +427,7 @@ bool load(const char* file_name, void (**eip)(void), void** esp) {
 
 done:
   /* We arrive here whether the load is successful or not. */
-  file_close(file);
+  // file_close(file);
   return success;
 }
 
