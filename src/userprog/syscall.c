@@ -4,6 +4,8 @@
 #include "threads/interrupt.h"
 #include "threads/thread.h"
 #include "userprog/process.h"
+#include "filesys/filesys.h"
+#include "filesys/file.h"
 
 static void syscall_handler(struct intr_frame*);
 
@@ -21,16 +23,36 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
 
   /* printf("System call number: %d\n", args[0]); */
 
-  if (args[0] == SYS_EXIT) {
-    f->eax = args[1];
-    printf("%s: exit(%d)\n", thread_current()->pcb->process_name, args[1]);
-    process_exit();
-  } else if (args[0] == SYS_WRITE) {
-
-    // Writes the N characters in BUFFER to the console.
-    // void putbuf(const char* buffer, size_t n)
-
-    putbuf(args[2], args[3]);
-    f->eax = args[3];
+  switch (args[0]) {
+    case SYS_EXIT: {
+      f->eax = args[1];
+      printf("%s: exit(%d)\n", thread_current()->pcb->process_name, args[1]);
+      process_exit();
+      break;
+    }
+    case SYS_OPEN: {
+      f->eax = (uint32_t)filesys_open((char*)args[1]);
+      break;
+    }
+    case SYS_CLOSE: {
+      // TODO
+      break;
+    }
+    case SYS_WRITE: {
+      if(!validAddress((void *)args[2], args[3])) {
+        f->eax = -1;
+        process_exit();
+      }
+      putbuf((void *) args[2], (uint32_t) args[3]);
+      f->eax = args[3];
+      break;
+    }
+    case SYS_READ: {
+      f->eax = (uint32_t)file_read((struct file*)args[1], (void*)args[2], (off_t)args[3]);
+      break;
+    }
+    default: {
+      PANIC("Syscall is not implemented");
+    }
   }
 }

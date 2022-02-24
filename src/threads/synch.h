@@ -21,6 +21,7 @@ struct lock {
   struct thread* holder;      /* Thread holding lock (for debugging). */
   struct semaphore semaphore; /* Binary semaphore controlling access. */
 };
+typedef struct lock lock_t;
 
 void lock_init(struct lock*);
 void lock_acquire(struct lock*);
@@ -58,5 +59,28 @@ void rw_lock_release(struct rw_lock*, bool reader);
    optimization barrier.  See "Optimization Barriers" in the
    reference guide for more information.*/
 #define barrier() asm volatile("" : : : "memory")
+
+// Utility synch objects and ops
+
+/* Atomic counter, for reference counting */
+typedef struct atomic_int {
+  int val;
+  lock_t mutex; // enforce exclusive r&w access to val
+} atomic_int_t;
+
+void atomic_int_init(atomic_int_t* ai);
+void atomic_int_init_with(atomic_int_t* ai, int val);
+void atomic_int_incr(atomic_int_t* ai);
+void atomic_int_decr(atomic_int_t* ai);
+
+/* Atomic reference counter */
+typedef struct arc {
+  void* ptr;
+  atomic_int_t ref_ct;
+} arc_t;
+
+void arc_init(arc_t* a, void* ptr);
+void arc_borrow(arc_t* a);
+void arc_drop(arc_t* a, bool free_ptr, bool free_this);
 
 #endif /* threads/synch.h */

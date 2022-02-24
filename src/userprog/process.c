@@ -24,6 +24,21 @@ static struct semaphore temporary;
 static thread_func start_process NO_RETURN;
 static bool load(const char* file_name, void (**eip)(void), void** esp);
 
+bool validAddress(void *ptr, int numBytes) {
+  if(ptr == NULL) {
+    return false;
+  }
+  //check start of buffer
+  if(!is_user_vaddr(ptr) || pagedir_get_page(thread_current()->pcb->pagedir,ptr) == NULL) {
+    return false;
+  }
+  //check end of buffer
+  if(!is_user_vaddr(ptr + numBytes) || pagedir_get_page(thread_current()->pcb->pagedir,ptr + numBytes) == NULL) {
+    return false;
+  }
+  return true;
+}
+
 /* Initializes user programs in the system by ensuring the main
    thread has a minimal PCB so that it can execute and wait for
    the first user process. Any additions to the PCB should be also
