@@ -30,7 +30,6 @@ struct process {
 
   struct list child_processes;    // List of process_status's of the children processes
   struct list fd_table;           // List of fd_table_entry_ts, relevant in File syscalls
-  struct list waiting_for;         // list of child processes we are waiting for
   
 };
 
@@ -38,6 +37,7 @@ struct process_status {
   struct list_elem elem;          // to put this in a list
   int exit_code;                  // exit code is only set once thread terminates
   struct semaphore is_dead;       // >0 if thread is dead, 0 if alive
+  bool success;                   // true if the program loaded successfully
   tid_t tid;                      // tid of thread -- let's us search for it in the list
   lock_t lock;                    // locks ref_count when it's being updated 
   int ref_count;                  // counter of how many threads currently point to this struct, can be freed once ref_count is 0

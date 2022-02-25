@@ -6,6 +6,7 @@
 #include "userprog/process.h"
 #include "filesys/filesys.h"
 #include "filesys/file.h"
+#include "devices/shutdown.h"
 
 static void syscall_handler(struct intr_frame*);
 
@@ -36,6 +37,10 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
     }
     case SYS_HALT: {
       shutdown_power_off();
+      break;
+    }
+    case SYS_EXEC: {
+      process_execute((char*)args[1]);
       break;
     }
     case SYS_CLOSE: {

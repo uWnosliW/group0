@@ -67,6 +67,16 @@ pid_t process_execute(const char* file_name) {
   char* fn_copy;
   tid_t tid;
 
+  // initialize the process_status of the child
+  struct process_status *child_status = malloc(sizeof(struct process_status));
+  list_push_back(&(thread_current()->pcb->child_processes), &(child_status->elem));        
+  child_status->exit_code = 0;                 
+  sema_init(&(child_status->is_dead),0);                     
+  child_status->success = false;
+  lock_init(&(child_status->lock));                 
+  child_status->ref_count=0;  
+  
+
   sema_init(&temporary, 0);
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
@@ -93,7 +103,7 @@ static void start_process(void* file_name_) {
   /* Allocate process control block */
   struct process* new_pcb = malloc(sizeof(struct process));
   success = pcb_success = new_pcb != NULL;
-
+  
   /* Initialize process control block */
   if (success) {
     // Ensure that timer_interrupt() -> schedule() -> process_activate()
@@ -104,6 +114,10 @@ static void start_process(void* file_name_) {
     // Continue initializing the PCB as normal
     t->pcb->main_thread = t;
     strlcpy(t->pcb->process_name, t->name, sizeof t->name);
+
+    //initilize each list
+    list_init(&(t->pcb->child_processes));
+    list_init(&(t->pcb->fd_table));
   }
 
   /* Initialize interrupt frame and load executable. */
