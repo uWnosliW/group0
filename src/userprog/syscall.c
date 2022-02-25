@@ -39,7 +39,12 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
       break;
     }
     case SYS_WRITE: {
-      f->eax = (uint32_t)file_write(stdout, (void*)args[2], (off_t)args[3]);
+      if(!validAddress((void *)args[2], args[3])) {
+        f->eax = -1;
+        process_exit();
+      }
+      putbuf((void *) args[2], (uint32_t) args[3]);
+      f->eax = args[3];
       break;
     }
     case SYS_READ: {
