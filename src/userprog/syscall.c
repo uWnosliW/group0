@@ -34,6 +34,10 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
       f->eax = (uint32_t)filesys_open((char*)args[1]);
       break;
     }
+    case SYS_HALT: {
+      shutdown_power_off();
+      break;
+    }
     case SYS_CLOSE: {
       // TODO
       break;
