@@ -16,7 +16,9 @@ typedef tid_t pid_t;
 /* Thread functions (Project 2: Multithreading) */
 typedef void (*pthread_fun)(void*);
 typedef void (*stub_fun)(pthread_fun, void*);
-bool validAddress(void *ptr, int numBytes);
+
+bool is_valid_user_address(void *ptr, int numBytes);
+
 /* The process control block for a given process. Since
    there can be multiple threads per process, we need a separate
    PCB from the TCB. All TCBs in a process will have a pointer
@@ -30,7 +32,6 @@ struct process {
   struct process_status* status;  // status of the current thread
   struct list child_processes;    // List of process_status's of the children processes
   struct list fd_table;           // List of fd_table_entry_ts, relevant in File syscalls
-  
 };
 
 struct process_status {
@@ -43,6 +44,11 @@ struct process_status {
   int ref_count;                  // counter of how many threads currently point to this struct, can be freed once ref_count is 0
 };
 
+struct fd_table_entry {
+  struct list_elem elem;
+  uint32_t fd;
+  struct file* file;
+};
 
 struct start_thread_arg {
   char* file_name;

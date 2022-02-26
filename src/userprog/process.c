@@ -27,7 +27,7 @@ static struct semaphore temporary;
 static thread_func start_process NO_RETURN;
 static bool load(const char* file_name, void (**eip)(void), void** esp);
 
-bool validAddress(void *ptr, int numBytes) {
+bool is_valid_user_address(void *ptr, int numBytes) {
   if(ptr == NULL) {
     return false;
   }
@@ -145,9 +145,9 @@ static void start_process(void* args_) {
     t->pcb->main_thread = t;
     strlcpy(t->pcb->process_name, t->name, sizeof t->name);
 
-    //initilize each list
-    list_init(&(t->pcb->child_processes));
-    list_init(&(t->pcb->fd_table));
+    // Initilaize each list
+    list_init(&t->pcb->child_processes);
+    list_init(&t->pcb->fd_table);
   }
 
   /* Initialize interrupt frame and load executable. */
@@ -400,6 +400,7 @@ bool load(const char* file_name, void (**eip)(void), void** esp) {
     goto done;
   }
 
+
   /* Read and verify executable header. */
   if (file_read(file, &ehdr, sizeof ehdr) != sizeof ehdr ||
       memcmp(ehdr.e_ident, "\177ELF\1\1\1", 7) || ehdr.e_type != 2 || ehdr.e_machine != 3 ||
@@ -407,6 +408,7 @@ bool load(const char* file_name, void (**eip)(void), void** esp) {
     printf("load: %s: error loading executable\n", file_name);
     goto done;
   }
+
 
   /* Read program headers. */
   file_ofs = ehdr.e_phoff;
@@ -463,7 +465,6 @@ bool load(const char* file_name, void (**eip)(void), void** esp) {
     goto done;
 
 
-
   *esp = (void (*)(void)) PHYS_BASE;
   for (int i = argc-1; i >= 0; i--) {
     // we add 1 b/c of null terminator
@@ -472,7 +473,7 @@ bool load(const char* file_name, void (**eip)(void), void** esp) {
     strlcpy(*esp, argv[i], PGSIZE);
   }
 
-  // word align
+  /* Word alignment */
   int lower_bytes_pad = ((3 + argc)* 4) % 16;
   int upper_bytes_pad = (-1 * (int) (*esp)) % 16;
   int padding_needed = (-1 * (upper_bytes_pad + lower_bytes_pad)) % 16;
@@ -480,30 +481,30 @@ bool load(const char* file_name, void (**eip)(void), void** esp) {
     padding_needed += 16;
   }
 
-  //insert the padding
+  /* Inserting padding for arguments */
   *esp -= padding_needed;
   memset(*esp, 0, padding_needed);
 
-  // null teriminator sentinel
+  /* Null terminator sentinel */
   *esp -= sizeof(*esp);
   memset(*esp, 0, sizeof(int));
 
-  // pushed addresses of argv[argc]
+  /* Push addresses of argv[argc] */
   for (int i = argc-1; i >= 0; i--) {
     *esp -= sizeof(*esp);
     memcpy(*esp, &argv_addr[i], sizeof(int));
   }
 
-  // push address of argvs
+  /* Push address of argv */
   void* address_of_argv = *esp;
   *esp -= sizeof(*esp);
   memcpy(*esp, &address_of_argv, sizeof(int));
 
-  // push argc
+  /* Push argc */
   *esp -= sizeof(*esp);
   memcpy(*esp, &argc, sizeof(int));
   
-  // push fake address
+  /* Push fake address */
   *esp -= sizeof(*esp);
 
   /* Start address. */
