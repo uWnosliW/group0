@@ -46,7 +46,7 @@ struct process_status {
 
 struct start_thread_arg {
   char* file_name;
-  struct process_status *status;
+  struct process_status* status;
 };
 
 void userprog_init(void);

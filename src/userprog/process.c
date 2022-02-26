@@ -20,6 +20,9 @@
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 
+//import pintoslist
+#include "lib/kernel/list.h"
+
 static struct semaphore temporary;
 static thread_func start_process NO_RETURN;
 static bool load(const char* file_name, void (**eip)(void), void** esp);
@@ -54,12 +57,14 @@ void userprog_init(void) {
      can come at any time and activate our pagedir */
   t->pcb = calloc(sizeof(struct process), 1);
   success = t->pcb != NULL;
+  
 
-  list_init(&(t->pcb->child_processes));
-  list_init(&(t->pcb->fd_table));
 
   /* Kill the kernel if we did not succeed */
   ASSERT(success);
+  
+  list_init(&(t->pcb->child_processes));
+  list_init(&(t->pcb->fd_table));
 }
 
 /* Starts a new thread running a user program loaded from
@@ -95,7 +100,6 @@ pid_t process_execute(const char* file_name) {
 
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create(file_name, PRI_DEFAULT, start_process, child_args);
-  
   sema_down(&(child_status->is_dead)); 
 
   // if child fails to load, free shared data; everything else 
@@ -119,11 +123,10 @@ static void start_process(void* args_) {
   struct thread* t = thread_current();
   struct intr_frame if_;
   bool success, pcb_success;
-
-  // init's pid of child thread, make child point to it's status
+  
+  // init's pid of child thread
   status->pid = t->tid;
-  t->pcb->status = status;
-
+  
   /* Allocate process control block */
   struct process* new_pcb = malloc(sizeof(struct process));
   success = pcb_success = new_pcb != NULL;
@@ -134,6 +137,9 @@ static void start_process(void* args_) {
     // does not try to activate our uninitialized pagedir
     new_pcb->pagedir = NULL;
     t->pcb = new_pcb;
+
+    // make child point to it's status
+    t->pcb->status = status;
 
     // Continue initializing the PCB as normal
     t->pcb->main_thread = t;
@@ -202,6 +208,13 @@ void process_exit(void) {
   struct thread* cur = thread_current();
   uint32_t* pd;
 
+  // todo later: what if you decrease ref_count at the end? maybe if nothing works do that
+  lock_acquire(&(cur->pcb->status->lock));
+  cur->pcb->status->ref_count -= 1;
+
+  //if things don't work, put back this lock 
+  // lock_release(&(cur->pcb->status->lock));
+
   /* If this thread does not have a PCB, don't worry */
   if (cur->pcb == NULL) {
     thread_exit();
@@ -222,6 +235,35 @@ void process_exit(void) {
     cur->pcb->pagedir = NULL;
     pagedir_activate(NULL);
     pagedir_destroy(pd);
+  }
+
+  struct process_status* status = cur->pcb->status;
+
+  // the child thread is dead  
+  sema_up(&(status->is_dead));
+
+  //if things don't work, put back this lock 
+  // lock_aquire(&(cur->pcb->status->lock));
+  if (status->ref_count <= 0) {
+    free(status);
+  } else {
+    lock_release(&(status->lock));
+  }
+
+  struct list_elem *iter;
+  struct process_status *temp;
+  for(iter = list_begin(&(cur->pcb->child_processes)); iter != list_end(&(cur->pcb->child_processes)); iter = list_next(iter)) {
+    temp = list_entry(iter, struct process_status, elem);
+
+    lock_acquire(&(cur->pcb->status->lock));
+    temp->ref_count -= 1;
+
+    // todo: troll lock_release. might need to revisit
+    if (temp->ref_count <= 0) {
+      free(temp);
+    } else {
+      lock_release(&(status->lock));
+    }
   }
 
   /* Free the PCB of this process and kill this thread
