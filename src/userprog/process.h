@@ -27,7 +27,7 @@ struct process {
   uint32_t* pagedir;          /* Page directory. */
   char process_name[16];      /* Name of the main thread */
   struct thread* main_thread; /* Pointer to main thread */
-
+  struct process_status* status;  // status of the current thread
   struct list child_processes;    // List of process_status's of the children processes
   struct list fd_table;           // List of fd_table_entry_ts, relevant in File syscalls
   
@@ -38,11 +38,16 @@ struct process_status {
   int exit_code;                  // exit code is only set once thread terminates
   struct semaphore is_dead;       // >0 if thread is dead, 0 if alive
   bool success;                   // true if the program loaded successfully
-  tid_t tid;                      // tid of thread -- let's us search for it in the list
+  pid_t pid;                      // pid of process -- let's us search for it in the list
   lock_t lock;                    // locks ref_count when it's being updated 
   int ref_count;                  // counter of how many threads currently point to this struct, can be freed once ref_count is 0
 };
 
+
+struct start_thread_arg {
+  char* file_name;
+  struct process_status *status;
+};
 
 void userprog_init(void);
 

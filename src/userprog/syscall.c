@@ -40,7 +40,11 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
       break;
     }
     case SYS_EXEC: {
-      process_execute((char*)args[1]);
+      pid_t child_pid = process_execute((char*)args[1]);
+      if (child_pid == TID_ERROR) {
+        f->eax = -1;
+      }
+      f->eax = child_pid;
       break;
     }
     case SYS_CLOSE: {

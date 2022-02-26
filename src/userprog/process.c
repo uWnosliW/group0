@@ -55,6 +55,9 @@ void userprog_init(void) {
   t->pcb = calloc(sizeof(struct process), 1);
   success = t->pcb != NULL;
 
+  list_init(&(t->pcb->child_processes));
+  list_init(&(t->pcb->fd_table));
+
   /* Kill the kernel if we did not succeed */
   ASSERT(success);
 }
@@ -74,8 +77,8 @@ pid_t process_execute(const char* file_name) {
   sema_init(&(child_status->is_dead),0);                     
   child_status->success = false;
   lock_init(&(child_status->lock));                 
-  child_status->ref_count=0;  
-  
+  child_status->ref_count = 2;  
+
 
   sema_init(&temporary, 0);
   /* Make a copy of FILE_NAME.
@@ -85,8 +88,22 @@ pid_t process_execute(const char* file_name) {
     return TID_ERROR;
   strlcpy(fn_copy, file_name, PGSIZE);
 
+  //initializing the args passed into start_process
+  struct start_thread_arg *child_args = malloc(sizeof(struct start_thread_arg));
+  child_args->file_name = fn_copy;
+  child_args->status = child_status;
+
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create(file_name, PRI_DEFAULT, start_process, fn_copy);
+  tid = thread_create(file_name, PRI_DEFAULT, start_process, child_args);
+  
+  sema_down(&(child_status->is_dead)); 
+
+  // if child fails to load, free shared data; everything else 
+  // is freed in start_process when it fails to load
+  if (!(child_status->success)) {
+    free(child_status);
+  }
+
   if (tid == TID_ERROR)
     palloc_free_page(fn_copy);
   return tid;
@@ -94,11 +111,18 @@ pid_t process_execute(const char* file_name) {
 
 /* A thread function that loads a user process and starts it
    running. */
-static void start_process(void* file_name_) {
-  char* file_name = (char*)file_name_;
+static void start_process(void* args_) {
+  struct start_thread_arg *args = (struct start_thread_arg*) args_;
+  char* file_name = args->file_name;
+  struct process_status* status = args->status;
+
   struct thread* t = thread_current();
   struct intr_frame if_;
   bool success, pcb_success;
+
+  // init's pid of child thread, make child point to it's status
+  status->pid = t->tid;
+  t->pcb->status = status;
 
   /* Allocate process control block */
   struct process* new_pcb = malloc(sizeof(struct process));
@@ -143,9 +167,12 @@ static void start_process(void* file_name_) {
   palloc_free_page(file_name);
   if (!success) {
     sema_up(&temporary);
+    sema_up(&(t->pcb->status->is_dead));
     thread_exit();
+  } else {
+    t->pcb->status->success = true;
   }
-
+  sema_up(&(t->pcb->status->is_dead));
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
      threads/intr-stubs.S).  Because intr_exit takes all of its
