@@ -283,7 +283,7 @@ void process_exit(void) {
   struct list_elem* iter;
   struct process_status* temp;
   for (iter = list_begin(&(cur->pcb->child_processes));
-       iter != list_end(&(cur->pcb->child_processes)); iter = list_next(iter)) {
+       iter != list_end(&(cur->pcb->child_processes));) {
     temp = list_entry(iter, struct process_status, elem);
 
     lock_acquire(&(temp->lock));
