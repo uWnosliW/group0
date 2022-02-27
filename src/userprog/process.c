@@ -340,6 +340,10 @@ void process_exit(void) {
   // the child thread is dead
   sema_up(&(status->is_dead));
 
+  // allow write to current executable
+  struct file* file = filesys_open(cur->pcb->process_name);
+  file_allow_write(file);
+  file_close(file);
   /* Free the PCB of this process and kill this thread
      Avoid race where PCB is freed before t->pcb is set to NULL
      If this happens, then an unfortuantely timed timer interrupt
@@ -583,6 +587,11 @@ bool load(const char* file_name, void (**eip)(void), void** esp) {
   success = true;
 
 done:
+
+  // prevent any writes to this executable
+  if (success) {
+    file_deny_write(file);
+  }
   /* We arrive here whether the load is successful or not. */
   // file_close(file);
   return success;
