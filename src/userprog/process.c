@@ -160,9 +160,6 @@ static void start_process(void* args_) {
     if_.cs = SEL_UCSEG;
     if_.eflags = FLAG_IF | FLAG_MBS;
     success = load(file_name, &if_.eip, &if_.esp);
-
-    /* "restore" FPU to recently zeroed arr TODO */
-    //asm("frstor %0" : : "rm"(&if_.fpu));
   }
 
   /* Handle failure with succesful PCB malloc. Must free the PCB */
@@ -286,7 +283,7 @@ void process_exit(void) {
   struct list_elem* iter;
   struct process_status* temp;
   for (iter = list_begin(&(cur->pcb->child_processes));
-       iter != list_end(&(cur->pcb->child_processes));) {
+       iter != list_end(&(cur->pcb->child_processes)); iter = list_next(iter)) {
     temp = list_entry(iter, struct process_status, elem);
 
     lock_acquire(&(temp->lock));
