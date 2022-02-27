@@ -22,16 +22,7 @@ void syscall_init(void) {
   lock_init(&global_file_lock);
   intr_register_int(0x30, 3, INTR_ON, syscall_handler, "syscall");
 }
-// exits the current process and free's any locks if an invalid pointer was passed in
-static void print_and_exit(struct intr_frame* f) {
-  f->eax = -1;
-  printf("%s: exit(%d)\n", thread_current()->pcb->process_name, -1);
-  thread_current()->pcb->status->exit_code = -1;
-  if (lock_held_by_current_thread(&global_file_lock)) {
-    lock_release(&global_file_lock);
-  }
-  process_exit();
-}
+
 static void syscall_handler(struct intr_frame* f UNUSED) {
   uint32_t* args = ((uint32_t*)f->esp);
 
@@ -43,9 +34,7 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
    */
 
   /* printf("System call number: %d\n", args[0]); */
-  if (!is_valid_user_address((void*)args, 4)) {
-    print_and_exit(f);
-  }
+
   switch (args[0]) {
     case SYS_HALT: {
       shutdown_power_off();
@@ -53,25 +42,17 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
     }
 
     case SYS_EXIT: {
-      if (!is_valid_user_address((void*)args, 8)) {
-        print_and_exit(f);
-      }
       f->eax = args[1];
       printf("%s: exit(%d)\n", thread_current()->pcb->process_name, args[1]);
 
-      thread_current()->pcb->status->exit_code = (int)args[1];
+      thread_current()->pcb->status->exit_code = args[1];
 
       process_exit();
 
       break;
     }
+
     case SYS_EXEC: {
-      if (!is_valid_user_address((void*)args, 8) || (void*)args[1] == NULL ||
-          !is_user_vaddr((void*)args[1]) ||
-          !is_valid_user_address((void*)args[1], strlen((char*)args[1]))) {
-        print_and_exit(f);
-        break;
-      }
       pid_t child_pid = process_execute((char*)args[1]);
       if (child_pid == TID_ERROR) {
         f->eax = -1;
@@ -81,21 +62,20 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
     }
 
     case SYS_WAIT: {
-      if (!is_valid_user_address((void*)args, 8)) {
-        print_and_exit(f);
-        break;
-      }
-      f->eax = process_wait((pid_t)args[1]);
+      // TODO
       break;
     }
 
     case SYS_CREATE: {
-      if ((void*)args[1] == NULL || !is_user_vaddr((void*)args[1]) ||
-          !is_valid_user_address((void*)args[1], strlen((char*)args[1]))) {
-        print_and_exit(f);
+      lock_acquire(&global_file_lock);
+
+      if (!is_valid_string((char*)args[1])) {
+        lock_release(&global_file_lock);
+        printf("%s: exit(-1)\n", thread_current()->pcb->process_name);
+        f->eax = -1;
+        process_exit();
         break;
       }
-      lock_acquire(&global_file_lock);
 
       f->eax = filesys_create((char*)args[1], args[2]);
 
@@ -106,9 +86,11 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
     case SYS_REMOVE: {
       lock_acquire(&global_file_lock);
 
-      if ((void*)args[1] == NULL || !is_user_vaddr((void*)args[1]) ||
-          !is_valid_user_address((void*)args[1], strlen((char*)args[1]))) {
-        print_and_exit(f);
+      if (!is_valid_string((char*)args[1])) {
+        lock_release(&global_file_lock);
+        printf("%s: exit(-1)\n", thread_current()->pcb->process_name);
+        f->eax = -1;
+        process_exit();
         break;
       }
 
@@ -121,9 +103,11 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
     case SYS_OPEN: {
       lock_acquire(&global_file_lock);
 
-      if ((void*)args[1] == NULL || !is_user_vaddr((void*)args[1]) ||
-          !is_valid_user_address((void*)args[1], strlen((char*)args[1]))) {
-        print_and_exit(f);
+      if (!is_valid_string((char*)args[1])) {
+        lock_release(&global_file_lock);
+        printf("%s: exit(-1)\n", thread_current()->pcb->process_name);
+        f->eax = -1;
+        process_exit();
         break;
       }
 
@@ -164,22 +148,12 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
     case SYS_FILESIZE: {
       lock_acquire(&global_file_lock);
 
-      struct list* fd_table_ptr = &thread_current()->pcb->fd_table;
-      struct fd_table_entry* curr_fd;
+      struct fd_table_entry* fdt_entry = get_fd_table_entry(args[1]);
 
-      struct list_elem* curr = list_begin(fd_table_ptr);
-      while (curr != list_end(fd_table_ptr)) {
-        curr_fd = list_entry(curr, struct fd_table_entry, elem);
-        if (curr_fd->fd == args[1]) {
-          break;
-        }
-        curr = list_next(curr);
-      }
-
-      if (curr == list_end(fd_table_ptr)) {
+      if (fdt_entry == NULL) {
         f->eax = -1;
       } else {
-        f->eax = file_length(curr_fd->file);
+        f->eax = file_length(fdt_entry->file);
       }
 
       lock_release(&global_file_lock);
@@ -189,13 +163,12 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
     case SYS_READ: {
       lock_acquire(&global_file_lock);
 
-      if ((int)args[1] == STDIN_FILENO) {
+      if (args[1] == STDIN_FILENO) {
         lock_release(&global_file_lock);
 
         char* casted_buffer = (char*)args[2];
-        off_t bytes_to_read = args[3];
+        size_t bytes_to_read = args[3], bytes_read = 0;
 
-        int bytes_read = 0;
         uint8_t c;
         while (bytes_read < bytes_to_read) {
           c = input_getc();
@@ -207,8 +180,7 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
         break;
       }
 
-      if ((void*)args[2] == NULL || !is_user_vaddr((void*)args[2]) ||
-          !is_valid_user_address((void*)args[2], strlen((char*)args[2]))) {
+      if (!is_valid_string((char*)args[2])) {
         lock_release(&global_file_lock);
         printf("%s: exit(-1)\n", thread_current()->pcb->process_name);
         f->eax = -1;
@@ -216,22 +188,12 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
         break;
       }
 
-      struct list* fd_table_ptr = &thread_current()->pcb->fd_table;
-      struct fd_table_entry* curr_fd;
+      struct fd_table_entry* fdt_entry = get_fd_table_entry(args[1]);
 
-      struct list_elem* curr = list_begin(fd_table_ptr);
-      while (curr != list_end(fd_table_ptr)) {
-        curr_fd = list_entry(curr, struct fd_table_entry, elem);
-        if (curr_fd->fd == args[1]) {
-          break;
-        }
-        curr = list_next(curr);
-      }
-
-      if (curr == list_end(fd_table_ptr)) {
+      if (fdt_entry == NULL) {
         f->eax = -1;
       } else {
-        f->eax = file_read(curr_fd->file, (void*)args[2], (off_t)args[3]);
+        f->eax = file_read(fdt_entry->file, (void*)args[2], (off_t)args[3]);
       }
 
       lock_release(&global_file_lock);
@@ -242,11 +204,53 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
       lock_acquire(&global_file_lock);
 
       if (!is_valid_user_address((void*)args[2], args[3])) {
+        lock_release(&global_file_lock);
+        printf("%s: exit(-1)\n", thread_current()->pcb->process_name);
         f->eax = -1;
         process_exit();
       }
-      putbuf((void*)args[2], (uint32_t)args[3]);
-      f->eax = args[3];
+
+      if (args[1] == STDOUT_FILENO) {
+        lock_release(&global_file_lock);
+
+        char* buffer = (char*)args[2];
+        size_t bytes_left = args[3];
+
+        while (bytes_left > 0) {
+          if (bytes_left < 256) {
+            putbuf(buffer, bytes_left);
+            bytes_left = 0;
+          } else {
+            putbuf(buffer, 256);
+            buffer += 256;
+            bytes_left -= 256;
+          }
+        }
+
+        f->eax = args[3];
+        break;
+      }
+
+      struct fd_table_entry* fdt_entry = get_fd_table_entry(args[1]);
+
+      if (fdt_entry == NULL) {
+        f->eax = -1;
+      } else {
+        char* buffer = (char*)args[2];
+        size_t bytes_left = args[3], bytes_written;
+
+        while (bytes_left > 0) {
+          if (bytes_left < 256) {
+            bytes_written = file_write(fdt_entry->file, buffer, bytes_left);
+          } else {
+            bytes_written -= file_write(fdt_entry->file, buffer, 256);
+          }
+          buffer += bytes_written;
+          bytes_left -= bytes_written;
+        }
+
+        f->eax = args[3];
+      }
 
       lock_release(&global_file_lock);
       break;
@@ -255,20 +259,10 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
     case SYS_SEEK: {
       lock_acquire(&global_file_lock);
 
-      struct list* fd_table_ptr = &thread_current()->pcb->fd_table;
-      struct fd_table_entry* curr_fd;
+      struct fd_table_entry* fdt_entry = get_fd_table_entry(args[1]);
 
-      struct list_elem* curr = list_begin(fd_table_ptr);
-      while (curr != list_end(fd_table_ptr)) {
-        curr_fd = list_entry(curr, struct fd_table_entry, elem);
-        if (curr_fd->fd == args[1]) {
-          break;
-        }
-        curr = list_next(curr);
-      }
-
-      if (curr != list_end(fd_table_ptr)) {
-        curr_fd->file->pos = args[2];
+      if (fdt_entry != NULL) {
+        fdt_entry->file->pos = args[2];
       }
 
       lock_release(&global_file_lock);
@@ -278,22 +272,12 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
     case SYS_TELL: {
       lock_acquire(&global_file_lock);
 
-      struct list* fd_table_ptr = &thread_current()->pcb->fd_table;
-      struct fd_table_entry* curr_fd;
+      struct fd_table_entry* fdt_entry = get_fd_table_entry(args[1]);
 
-      struct list_elem* curr = list_begin(fd_table_ptr);
-      while (curr != list_end(fd_table_ptr)) {
-        curr_fd = list_entry(curr, struct fd_table_entry, elem);
-        if (curr_fd->fd == args[1]) {
-          break;
-        }
-        curr = list_next(curr);
-      }
-
-      if (curr == list_end(fd_table_ptr)) {
+      if (fdt_entry == NULL) {
         f->eax = -1;
       } else {
-        f->eax = curr_fd->file->pos;
+        f->eax = fdt_entry->file->pos;
       }
 
       lock_release(&global_file_lock);
@@ -301,7 +285,17 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
     }
 
     case SYS_CLOSE: {
-      // TODO
+      lock_acquire(&global_file_lock);
+
+      struct fd_table_entry* fdt_entry = get_fd_table_entry(args[1]);
+
+      if (fdt_entry == NULL) {
+        f->eax = -1;
+      } else {
+        file_close(fdt_entry->file);
+      }
+
+      lock_release(&global_file_lock);
       break;
     }
 

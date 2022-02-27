@@ -20,9 +20,6 @@
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 
-//import pintoslist
-#include "lib/kernel/list.h"
-
 static struct semaphore temporary;
 static thread_func start_process NO_RETURN;
 static bool load(const char* file_name, void (**eip)(void), void** esp);
@@ -44,6 +41,43 @@ bool is_valid_user_address(void* ptr, size_t deref_size) {
   }
 
   return true;
+}
+
+bool is_valid_string(char* ptr) {
+  if (ptr == NULL || !is_user_vaddr(ptr) ||
+      pagedir_get_page(thread_current()->pcb->pagedir, ptr) == NULL) {
+    return false;
+  }
+
+  char c = *ptr;
+  while (c != '\0') {
+    c = *ptr++;
+    if (!is_user_vaddr(ptr) || pagedir_get_page(thread_current()->pcb->pagedir, ptr) == NULL) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+struct fd_table_entry* get_fd_table_entry(uint32_t fd) {
+  struct list* fd_table_ptr = &thread_current()->pcb->fd_table;
+  struct fd_table_entry* curr_fd;
+
+  struct list_elem* curr = list_begin(fd_table_ptr);
+  while (curr != list_end(fd_table_ptr)) {
+    curr_fd = list_entry(curr, struct fd_table_entry, elem);
+    if (curr_fd->fd == fd) {
+      break;
+    }
+    curr = list_next(curr);
+  }
+
+  if (curr == list_end(fd_table_ptr)) {
+    return NULL;
+  } else {
+    return curr_fd;
+  }
 }
 
 /* Initializes user programs in the system by ensuring the main

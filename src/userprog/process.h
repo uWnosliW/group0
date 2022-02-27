@@ -1,6 +1,7 @@
 #ifndef USERPROG_PROCESS_H
 #define USERPROG_PROCESS_H
 
+#include "lib/kernel/list.h"
 #include "threads/thread.h"
 #include <stdint.h>
 
@@ -18,6 +19,10 @@ typedef void (*pthread_fun)(void*);
 typedef void (*stub_fun)(pthread_fun, void*);
 
 bool is_valid_user_address(void* ptr, size_t deref_size);
+
+bool is_valid_string(char* ptr);
+
+struct fd_table_entry* get_fd_table_entry(uint32_t fd);
 
 /* The process control block for a given process. Since
    there can be multiple threads per process, we need a separate
