@@ -29,5 +29,5 @@ test_main (void)
   /* Write to child-rox again. */
   seek (handle, 0);
   CHECK (write (handle, buffer, sizeof buffer) == (int) sizeof buffer,
-         "write \"child-rox\" end");
+         "write \"child-rox\"");
 }
