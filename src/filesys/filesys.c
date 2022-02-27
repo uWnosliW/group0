@@ -7,6 +7,7 @@
 #include "filesys/inode.h"
 #include "filesys/directory.h"
 
+
 /* Partition that contains the file system. */
 struct block* fs_device;
 
@@ -26,8 +27,6 @@ void filesys_init(bool format) {
     do_format();
 
   free_map_open();
-
-  lock_init(&global_file_lock);
 }
 
 /* Shuts down the file system module, writing any unwritten data

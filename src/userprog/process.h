@@ -17,7 +17,7 @@ typedef tid_t pid_t;
 typedef void (*pthread_fun)(void*);
 typedef void (*stub_fun)(pthread_fun, void*);
 
-bool is_valid_user_address(void *ptr, int numBytes);
+bool is_valid_user_address(void *ptr, size_t deref_size);
 
 /* The process control block for a given process. Since
    there can be multiple threads per process, we need a separate

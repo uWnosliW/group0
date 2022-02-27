@@ -27,18 +27,21 @@ static struct semaphore temporary;
 static thread_func start_process NO_RETURN;
 static bool load(const char* file_name, void (**eip)(void), void** esp);
 
-bool is_valid_user_address(void *ptr, int numBytes) {
-  if(ptr == NULL) {
+bool is_valid_user_address(void *ptr, size_t deref_size) {
+  if (ptr == NULL) {
     return false;
   }
-  //check start of buffer
-  if(!is_user_vaddr(ptr) || pagedir_get_page(thread_current()->pcb->pagedir,ptr) == NULL) {
+  
+  /* If the first byte of ptr does not lie in user space or the address pointed to is unmapped, return false */
+  if (!is_user_vaddr(ptr) || pagedir_get_page(thread_current()->pcb->pagedir, ptr) == NULL) {
     return false;
   }
-  //check end of buffer
-  if(!is_user_vaddr(ptr + numBytes) || pagedir_get_page(thread_current()->pcb->pagedir,ptr + numBytes) == NULL) {
+  
+  /* If the last byte of ptr does not lie in user space or the address pointed to is unmapped, return false */
+  if (!is_user_vaddr(ptr + deref_size) || pagedir_get_page(thread_current()->pcb->pagedir, ptr + deref_size) == NULL) {
     return false;
   }
+
   return true;
 }
 
