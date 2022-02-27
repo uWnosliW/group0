@@ -3,10 +3,6 @@
 
 #include <stdbool.h>
 #include "filesys/off_t.h"
-#include "threads/synch.h"
-
-/* Global file operation lock (to be removed later) */
-lock_t global_file_lock;
 
 /* Sectors of system file inodes. */
 #define FREE_MAP_SECTOR 0 /* Free map file inode sector. */
