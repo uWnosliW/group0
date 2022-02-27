@@ -161,8 +161,8 @@ static void start_process(void* args_) {
     if_.eflags = FLAG_IF | FLAG_MBS;
     success = load(file_name, &if_.eip, &if_.esp);
 
-    /* "restore" FPU to recently zeroed arr */
-    asm("frstor %0" : : "rm"(&if_.fpu));
+    /* "restore" FPU to recently zeroed arr TODO */
+    //asm("frstor %0" : : "rm"(&if_.fpu));
   }
 
   /* Handle failure with succesful PCB malloc. Must free the PCB */
