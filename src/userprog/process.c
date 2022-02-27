@@ -27,18 +27,19 @@ static struct semaphore temporary;
 static thread_func start_process NO_RETURN;
 static bool load(const char* file_name, void (**eip)(void), void** esp);
 
-bool is_valid_user_address(void *ptr, size_t deref_size) {
+bool is_valid_user_address(void* ptr, size_t deref_size) {
   if (ptr == NULL) {
     return false;
   }
-  
+
   /* If the first byte of ptr does not lie in user space or the address pointed to is unmapped, return false */
   if (!is_user_vaddr(ptr) || pagedir_get_page(thread_current()->pcb->pagedir, ptr) == NULL) {
     return false;
   }
-  
+
   /* If the last byte of ptr does not lie in user space or the address pointed to is unmapped, return false */
-  if (!is_user_vaddr(ptr + deref_size) || pagedir_get_page(thread_current()->pcb->pagedir, ptr + deref_size) == NULL) {
+  if (!is_user_vaddr(ptr + deref_size) ||
+      pagedir_get_page(thread_current()->pcb->pagedir, ptr + deref_size) == NULL) {
     return false;
   }
 
@@ -60,12 +61,10 @@ void userprog_init(void) {
      can come at any time and activate our pagedir */
   t->pcb = calloc(sizeof(struct process), 1);
   success = t->pcb != NULL;
-  
-
 
   /* Kill the kernel if we did not succeed */
   ASSERT(success);
-  
+
   list_init(&(t->pcb->child_processes));
   list_init(&(t->pcb->fd_table));
 }
@@ -79,14 +78,13 @@ pid_t process_execute(const char* file_name) {
   tid_t tid;
 
   // initialize the process_status of the child
-  struct process_status *child_status = malloc(sizeof(struct process_status));
-  list_push_back(&(thread_current()->pcb->child_processes), &(child_status->elem));        
-  child_status->exit_code = 0;                 
-  sema_init(&(child_status->is_dead),0);                     
+  struct process_status* child_status = malloc(sizeof(struct process_status));
+  list_push_back(&(thread_current()->pcb->child_processes), &(child_status->elem));
+  child_status->exit_code = 0;
+  sema_init(&(child_status->is_dead), 0);
   child_status->success = false;
-  lock_init(&(child_status->lock));                 
-  child_status->ref_count = 2;  
-
+  lock_init(&(child_status->lock));
+  child_status->ref_count = 2;
 
   sema_init(&temporary, 0);
   /* Make a copy of FILE_NAME.
@@ -97,15 +95,15 @@ pid_t process_execute(const char* file_name) {
   strlcpy(fn_copy, file_name, PGSIZE);
 
   //initializing the args passed into start_process
-  struct start_thread_arg *child_args = malloc(sizeof(struct start_thread_arg));
+  struct start_thread_arg* child_args = malloc(sizeof(struct start_thread_arg));
   child_args->file_name = fn_copy;
   child_args->status = child_status;
 
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create(file_name, PRI_DEFAULT, start_process, child_args);
-  sema_down(&(child_status->is_dead)); 
+  sema_down(&(child_status->is_dead));
 
-  // if child fails to load, free shared data; everything else 
+  // if child fails to load, free shared data; everything else
   // is freed in start_process when it fails to load
   if (!(child_status->success)) {
     free(child_status);
@@ -119,21 +117,21 @@ pid_t process_execute(const char* file_name) {
 /* A thread function that loads a user process and starts it
    running. */
 static void start_process(void* args_) {
-  struct start_thread_arg *args = (struct start_thread_arg*) args_;
+  struct start_thread_arg* args = (struct start_thread_arg*)args_;
   char* file_name = args->file_name;
   struct process_status* status = args->status;
 
   struct thread* t = thread_current();
   struct intr_frame if_;
   bool success, pcb_success;
-  
+
   // init's pid of child thread
   status->pid = t->tid;
-  
+
   /* Allocate process control block */
   struct process* new_pcb = malloc(sizeof(struct process));
   success = pcb_success = new_pcb != NULL;
-  
+
   /* Initialize process control block */
   if (success) {
     // Ensure that timer_interrupt() -> schedule() -> process_activate()
@@ -215,7 +213,7 @@ void process_exit(void) {
   lock_acquire(&(cur->pcb->status->lock));
   cur->pcb->status->ref_count -= 1;
 
-  //if things don't work, put back this lock 
+  //if things don't work, put back this lock
   // lock_release(&(cur->pcb->status->lock));
 
   /* If this thread does not have a PCB, don't worry */
@@ -242,10 +240,10 @@ void process_exit(void) {
 
   struct process_status* status = cur->pcb->status;
 
-  // the child thread is dead  
+  // the child thread is dead
   sema_up(&(status->is_dead));
 
-  //if things don't work, put back this lock 
+  //if things don't work, put back this lock
   // lock_aquire(&(cur->pcb->status->lock));
   if (status->ref_count <= 0) {
     free(status);
@@ -253,9 +251,10 @@ void process_exit(void) {
     lock_release(&(status->lock));
   }
 
-  struct list_elem *iter;
-  struct process_status *temp;
-  for(iter = list_begin(&(cur->pcb->child_processes)); iter != list_end(&(cur->pcb->child_processes)); iter = list_next(iter)) {
+  struct list_elem* iter;
+  struct process_status* temp;
+  for (iter = list_begin(&(cur->pcb->child_processes));
+       iter != list_end(&(cur->pcb->child_processes)); iter = list_next(iter)) {
     temp = list_entry(iter, struct process_status, elem);
 
     lock_acquire(&(cur->pcb->status->lock));
@@ -382,11 +381,11 @@ bool load(const char* file_name, void (**eip)(void), void** esp) {
   process_activate();
 
   int argc = 0;
-  const char *argv[128];
-  void *argv_addr[128];
+  const char* argv[128];
+  void* argv_addr[128];
 
-  char *save_ptr;
-  char *token = strtok_r((char *) file_name, " ", &save_ptr);
+  char* save_ptr;
+  char* token = strtok_r((char*)file_name, " ", &save_ptr);
   while (token != NULL) {
     argv[argc] = token;
     argc += 1;
@@ -395,14 +394,12 @@ bool load(const char* file_name, void (**eip)(void), void** esp) {
 
   strlcpy(t->pcb->process_name, argv[0], PGSIZE);
 
-
   /* Open executable file. */
   file = filesys_open(argv[0]);
   if (file == NULL) {
     printf("load: %s: open failed\n", file_name);
     goto done;
   }
-
 
   /* Read and verify executable header. */
   if (file_read(file, &ehdr, sizeof ehdr) != sizeof ehdr ||
@@ -411,7 +408,6 @@ bool load(const char* file_name, void (**eip)(void), void** esp) {
     printf("load: %s: error loading executable\n", file_name);
     goto done;
   }
-
 
   /* Read program headers. */
   file_ofs = ehdr.e_phoff;
@@ -467,9 +463,8 @@ bool load(const char* file_name, void (**eip)(void), void** esp) {
   if (!setup_stack(esp))
     goto done;
 
-
-  *esp = (void (*)(void)) PHYS_BASE;
-  for (int i = argc-1; i >= 0; i--) {
+  *esp = (void (*)(void))PHYS_BASE;
+  for (int i = argc - 1; i >= 0; i--) {
     // we add 1 b/c of null terminator
     *esp -= strlen(argv[i]) + 1;
     argv_addr[i] = *esp;
@@ -477,8 +472,8 @@ bool load(const char* file_name, void (**eip)(void), void** esp) {
   }
 
   /* Word alignment */
-  int lower_bytes_pad = ((3 + argc)* 4) % 16;
-  int upper_bytes_pad = (-1 * (int) (*esp)) % 16;
+  int lower_bytes_pad = ((3 + argc) * 4) % 16;
+  int upper_bytes_pad = (-1 * (int)(*esp)) % 16;
   int padding_needed = (-1 * (upper_bytes_pad + lower_bytes_pad)) % 16;
   if (padding_needed < 0) {
     padding_needed += 16;
@@ -493,7 +488,7 @@ bool load(const char* file_name, void (**eip)(void), void** esp) {
   memset(*esp, 0, sizeof(int));
 
   /* Push addresses of argv[argc] */
-  for (int i = argc-1; i >= 0; i--) {
+  for (int i = argc - 1; i >= 0; i--) {
     *esp -= sizeof(*esp);
     memcpy(*esp, &argv_addr[i], sizeof(int));
   }
@@ -506,7 +501,7 @@ bool load(const char* file_name, void (**eip)(void), void** esp) {
   /* Push argc */
   *esp -= sizeof(*esp);
   memcpy(*esp, &argc, sizeof(int));
-  
+
   /* Push fake address */
   *esp -= sizeof(*esp);
 

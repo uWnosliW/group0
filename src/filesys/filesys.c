@@ -7,7 +7,6 @@
 #include "filesys/inode.h"
 #include "filesys/directory.h"
 
-
 /* Partition that contains the file system. */
 struct block* fs_device;
 

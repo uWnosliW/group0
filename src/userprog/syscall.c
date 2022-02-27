@@ -18,9 +18,9 @@ static lock_t global_file_lock;
 
 static void syscall_handler(struct intr_frame*);
 
-void syscall_init(void) { 
+void syscall_init(void) {
   lock_init(&global_file_lock);
-  intr_register_int(0x30, 3, INTR_ON, syscall_handler, "syscall"); 
+  intr_register_int(0x30, 3, INTR_ON, syscall_handler, "syscall");
 }
 
 static void syscall_handler(struct intr_frame* f UNUSED) {
@@ -45,10 +45,10 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
       f->eax = args[1];
       printf("%s: exit(%d)\n", thread_current()->pcb->process_name, args[1]);
 
-      thread_current()->pcb->status->exit_code = (int) args[1];
+      thread_current()->pcb->status->exit_code = (int)args[1];
 
       process_exit();
-      
+
       break;
     }
 
@@ -69,7 +69,8 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
     case SYS_CREATE: {
       lock_acquire(&global_file_lock);
 
-      if ((void *)args[1] == NULL || !is_user_vaddr((void *)args[1]) || !is_valid_user_address((void *)args[1], strlen((char *)args[1]))) {
+      if ((void*)args[1] == NULL || !is_user_vaddr((void*)args[1]) ||
+          !is_valid_user_address((void*)args[1], strlen((char*)args[1]))) {
         lock_release(&global_file_lock);
         printf("%s: exit(-1)\n", thread_current()->pcb->process_name);
         f->eax = -1;
@@ -77,7 +78,7 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
         break;
       }
 
-      f->eax = filesys_create((char *)args[1], args[2]);
+      f->eax = filesys_create((char*)args[1], args[2]);
 
       lock_release(&global_file_lock);
       break;
@@ -86,7 +87,8 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
     case SYS_REMOVE: {
       lock_acquire(&global_file_lock);
 
-      if ((void *)args[1] == NULL || !is_user_vaddr((void *)args[1]) || !is_valid_user_address((void *)args[1], strlen((char *)args[1]))) {
+      if ((void*)args[1] == NULL || !is_user_vaddr((void*)args[1]) ||
+          !is_valid_user_address((void*)args[1], strlen((char*)args[1]))) {
         lock_release(&global_file_lock);
         printf("%s: exit(-1)\n", thread_current()->pcb->process_name);
         f->eax = -1;
@@ -94,7 +96,7 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
         break;
       }
 
-      f->eax = filesys_remove((char *)args[1]);
+      f->eax = filesys_remove((char*)args[1]);
 
       lock_release(&global_file_lock);
       break;
@@ -103,7 +105,8 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
     case SYS_OPEN: {
       lock_acquire(&global_file_lock);
 
-      if ((void *)args[1] == NULL || !is_user_vaddr((void *)args[1]) || !is_valid_user_address((void *)args[1], strlen((char *)args[1]))) {
+      if ((void*)args[1] == NULL || !is_user_vaddr((void*)args[1]) ||
+          !is_valid_user_address((void*)args[1], strlen((char*)args[1]))) {
         lock_release(&global_file_lock);
         printf("%s: exit(-1)\n", thread_current()->pcb->process_name);
         f->eax = -1;
@@ -111,16 +114,17 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
         break;
       }
 
-      struct file* file_ptr = filesys_open((char *)args[1]);
+      struct file* file_ptr = filesys_open((char*)args[1]);
       if (file_ptr == NULL) {
         f->eax = -1;
       } else {
-        struct list *fd_table_ptr = &thread_current()->pcb->fd_table;
-        struct fd_table_entry *curr_fd;
+        struct list* fd_table_ptr = &thread_current()->pcb->fd_table;
+        struct fd_table_entry* curr_fd;
         uint32_t fd_num = 2;
 
         struct list_elem *prev = list_head(fd_table_ptr), *curr;
-        for (curr = list_begin(fd_table_ptr); curr != list_end(fd_table_ptr); curr = list_next(curr)) {
+        for (curr = list_begin(fd_table_ptr); curr != list_end(fd_table_ptr);
+             curr = list_next(curr)) {
           curr_fd = list_entry(curr, struct fd_table_entry, elem);
           if (curr_fd->fd != fd_num) {
             break;
@@ -129,7 +133,7 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
           fd_num++;
         }
 
-        struct fd_table_entry *new_fd = malloc(sizeof(struct fd_table_entry));
+        struct fd_table_entry* new_fd = malloc(sizeof(struct fd_table_entry));
         new_fd->elem.prev = prev;
         new_fd->elem.next = curr;
         new_fd->fd = fd_num;
@@ -147,10 +151,10 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
     case SYS_FILESIZE: {
       lock_acquire(&global_file_lock);
 
-      struct list *fd_table_ptr = &thread_current()->pcb->fd_table;
-      struct fd_table_entry *curr_fd;
+      struct list* fd_table_ptr = &thread_current()->pcb->fd_table;
+      struct fd_table_entry* curr_fd;
 
-      struct list_elem *curr = list_begin(fd_table_ptr); 
+      struct list_elem* curr = list_begin(fd_table_ptr);
       while (curr != list_end(fd_table_ptr)) {
         curr_fd = list_entry(curr, struct fd_table_entry, elem);
         if (curr_fd->fd == args[1]) {
@@ -175,7 +179,7 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
       if ((int)args[1] == STDIN_FILENO) {
         lock_release(&global_file_lock);
 
-        char *casted_buffer = (char *)args[2];
+        char* casted_buffer = (char*)args[2];
         off_t bytes_to_read = args[3];
 
         int bytes_read = 0;
@@ -190,7 +194,8 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
         break;
       }
 
-      if ((void *)args[2] == NULL || !is_user_vaddr((void *)args[2]) || !is_valid_user_address((void *)args[2], strlen((char *)args[2]))) {
+      if ((void*)args[2] == NULL || !is_user_vaddr((void*)args[2]) ||
+          !is_valid_user_address((void*)args[2], strlen((char*)args[2]))) {
         lock_release(&global_file_lock);
         printf("%s: exit(-1)\n", thread_current()->pcb->process_name);
         f->eax = -1;
@@ -198,10 +203,10 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
         break;
       }
 
-      struct list *fd_table_ptr = &thread_current()->pcb->fd_table;
-      struct fd_table_entry *curr_fd;
+      struct list* fd_table_ptr = &thread_current()->pcb->fd_table;
+      struct fd_table_entry* curr_fd;
 
-      struct list_elem *curr = list_begin(fd_table_ptr); 
+      struct list_elem* curr = list_begin(fd_table_ptr);
       while (curr != list_end(fd_table_ptr)) {
         curr_fd = list_entry(curr, struct fd_table_entry, elem);
         if (curr_fd->fd == args[1]) {
@@ -213,9 +218,9 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
       if (curr == list_end(fd_table_ptr)) {
         f->eax = -1;
       } else {
-        f->eax = file_read(curr_fd->file, (void *)args[2], (off_t)args[3]);
+        f->eax = file_read(curr_fd->file, (void*)args[2], (off_t)args[3]);
       }
-      
+
       lock_release(&global_file_lock);
       break;
     }
@@ -223,21 +228,24 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
     case SYS_WRITE: {
       lock_acquire(&global_file_lock);
 
-      if(!is_valid_user_address((void *)args[2], args[3])) {
+      if (!is_valid_user_address((void*)args[2], args[3])) {
         f->eax = -1;
         process_exit();
       }
-      putbuf((void *) args[2], (uint32_t) args[3]);
+      putbuf((void*)args[2], (uint32_t)args[3]);
       f->eax = args[3];
 
       lock_release(&global_file_lock);
       break;
     }
-    
+
     case SYS_SEEK: {
       lock_acquire(&global_file_lock);
 
-      struct list_elem *curr = list_begin(fd_table_ptr); 
+      struct list* fd_table_ptr = &thread_current()->pcb->fd_table;
+      struct fd_table_entry* curr_fd;
+
+      struct list_elem* curr = list_begin(fd_table_ptr);
       while (curr != list_end(fd_table_ptr)) {
         curr_fd = list_entry(curr, struct fd_table_entry, elem);
         if (curr_fd->fd == args[1]) {
@@ -253,11 +261,14 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
       lock_release(&global_file_lock);
       break;
     }
-    
+
     case SYS_TELL: {
       lock_acquire(&global_file_lock);
 
-      struct list_elem *curr = list_begin(fd_table_ptr); 
+      struct list* fd_table_ptr = &thread_current()->pcb->fd_table;
+      struct fd_table_entry* curr_fd;
+
+      struct list_elem* curr = list_begin(fd_table_ptr);
       while (curr != list_end(fd_table_ptr)) {
         curr_fd = list_entry(curr, struct fd_table_entry, elem);
         if (curr_fd->fd == args[1]) {
@@ -275,7 +286,7 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
       lock_release(&global_file_lock);
       break;
     }
-    
+
     case SYS_CLOSE: {
       // TODO
       break;
@@ -291,8 +302,6 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
       break;
     }
 
-    default: {
-      PANIC("Syscall is not implemented");
-    }
+    default: { PANIC("Syscall is not implemented"); }
   }
 }
