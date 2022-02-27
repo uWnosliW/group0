@@ -40,7 +40,9 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
    */
 
   /* printf("System call number: %d\n", args[0]); */
-
+  if (!is_valid_user_address((void*)args, 4)) {
+    print_and_exit(f, -1);
+  }
   switch (args[0]) {
     case SYS_HALT: {
       shutdown_power_off();
@@ -59,7 +61,7 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
     }
     case SYS_EXEC: {
       if (!is_valid_user_address((void*)args, 8) || (void*)args[1] == NULL ||
-          !is_user_vaddr((void*)args[1]) ||
+          !is_valid_user_address((void*)args[1], 4) ||
           !is_valid_user_address((void*)args[1], strlen((char*)args[1]))) {
         print_and_exit(f, -1);
         break;
