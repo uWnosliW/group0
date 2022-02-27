@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <syscall-nr.h>
 #include "devices/input.h"
-#include "threads/interrupt.h"
 #include "threads/malloc.h"
 #include "threads/thread.h"
 #include "threads/synch.h"
@@ -21,6 +20,13 @@ static void syscall_handler(struct intr_frame*);
 void syscall_init(void) {
   lock_init(&global_file_lock);
   intr_register_int(0x30, 3, INTR_ON, syscall_handler, "syscall");
+}
+
+void print_and_exit(struct intr_frame* f, int exit_code) {
+  printf("%s: exit(%d)\n", thread_current()->pcb->process_name, exit_code);
+  f->eax = -1;
+  thread_current()->pcb->status->exit_code = -1;
+  process_exit();
 }
 
 static void syscall_handler(struct intr_frame* f UNUSED) {
@@ -42,17 +48,22 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
     }
 
     case SYS_EXIT: {
+      if (!is_valid_user_address((void*)args, 8)) {
+        print_and_exit(f, -1);
+      }
       f->eax = args[1];
       printf("%s: exit(%d)\n", thread_current()->pcb->process_name, args[1]);
-
-      thread_current()->pcb->status->exit_code = args[1];
-
+      thread_current()->pcb->status->exit_code = (int)args[1];
       process_exit();
-
       break;
     }
-
     case SYS_EXEC: {
+      if (!is_valid_user_address((void*)args, 8) || (void*)args[1] == NULL ||
+          !is_user_vaddr((void*)args[1]) ||
+          !is_valid_user_address((void*)args[1], strlen((char*)args[1]))) {
+        print_and_exit(f, -1);
+        break;
+      }
       pid_t child_pid = process_execute((char*)args[1]);
       if (child_pid == TID_ERROR) {
         f->eax = -1;
@@ -62,7 +73,11 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
     }
 
     case SYS_WAIT: {
-      // TODO
+      if (!is_valid_user_address((void*)args, 8)) {
+        print_and_exit(f, -1);
+        break;
+      }
+      f->eax = process_wait((pid_t)args[1]);
       break;
     }
 
@@ -71,10 +86,7 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
 
       if (!is_valid_string((char*)args[1])) {
         lock_release(&global_file_lock);
-        printf("%s: exit(-1)\n", thread_current()->pcb->process_name);
-        f->eax = -1;
-        process_exit();
-        break;
+        print_and_exit(f, -1);
       }
 
       f->eax = filesys_create((char*)args[1], args[2]);
@@ -88,10 +100,7 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
 
       if (!is_valid_string((char*)args[1])) {
         lock_release(&global_file_lock);
-        printf("%s: exit(-1)\n", thread_current()->pcb->process_name);
-        f->eax = -1;
-        process_exit();
-        break;
+        print_and_exit(f, -1);
       }
 
       f->eax = filesys_remove((char*)args[1]);
@@ -105,10 +114,7 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
 
       if (!is_valid_string((char*)args[1])) {
         lock_release(&global_file_lock);
-        printf("%s: exit(-1)\n", thread_current()->pcb->process_name);
-        f->eax = -1;
-        process_exit();
-        break;
+        print_and_exit(f, -1);
       }
 
       struct file* file_ptr = filesys_open((char*)args[1]);
@@ -182,10 +188,7 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
 
       if (!is_valid_string((char*)args[2])) {
         lock_release(&global_file_lock);
-        printf("%s: exit(-1)\n", thread_current()->pcb->process_name);
-        f->eax = -1;
-        process_exit();
-        break;
+        print_and_exit(f, -1);
       }
 
       struct fd_table_entry* fdt_entry = get_fd_table_entry(args[1]);
@@ -205,9 +208,7 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
 
       if (!is_valid_user_address((void*)args[2], args[3])) {
         lock_release(&global_file_lock);
-        printf("%s: exit(-1)\n", thread_current()->pcb->process_name);
-        f->eax = -1;
-        process_exit();
+        print_and_exit(f, -1);
       }
 
       if (args[1] == STDOUT_FILENO) {
@@ -236,20 +237,33 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
       if (fdt_entry == NULL) {
         f->eax = -1;
       } else {
-        char* buffer = (char*)args[2];
-        size_t bytes_left = args[3], bytes_written;
+        char *original_buffer, *buffer;
+        original_buffer = buffer = calloc(sizeof(char), args[3]);
+        memcpy(buffer, (char*)args[2], args[3]);
+
+        size_t bytes_left = args[3], bytes_written, expected_bytes_written;
+
+        f->eax = args[3];
 
         while (bytes_left > 0) {
           if (bytes_left < 256) {
+            expected_bytes_written = bytes_left;
             bytes_written = file_write(fdt_entry->file, buffer, bytes_left);
           } else {
-            bytes_written -= file_write(fdt_entry->file, buffer, 256);
+            expected_bytes_written = 256;
+            bytes_written = file_write(fdt_entry->file, buffer, 256);
           }
+
           buffer += bytes_written;
           bytes_left -= bytes_written;
+
+          if (bytes_written < expected_bytes_written) {
+            f->eax -= bytes_left;
+            break;
+          }
         }
 
-        f->eax = args[3];
+        free(original_buffer);
       }
 
       lock_release(&global_file_lock);
@@ -290,11 +304,12 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
       struct fd_table_entry* fdt_entry = get_fd_table_entry(args[1]);
 
       if (fdt_entry == NULL) {
-        f->eax = -1;
-      } else {
-        file_close(fdt_entry->file);
+        lock_release(&global_file_lock);
+        print_and_exit(f, -1);
       }
 
+      file_close(fdt_entry->file);
+      list_remove(&fdt_entry->elem);
       lock_release(&global_file_lock);
       break;
     }
