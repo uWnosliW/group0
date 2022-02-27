@@ -22,7 +22,16 @@ void syscall_init(void) {
   lock_init(&global_file_lock);
   intr_register_int(0x30, 3, INTR_ON, syscall_handler, "syscall");
 }
-
+// exits the current process and free's any locks if an invalid pointer was passed in
+static void print_and_exit(struct intr_frame* f) {
+  f->eax = -1;
+  printf("%s: exit(%d)\n", thread_current()->pcb->process_name, -1);
+  thread_current()->pcb->status->exit_code = -1;
+  if (lock_held_by_current_thread(&global_file_lock)) {
+    lock_release(&global_file_lock);
+  }
+  process_exit();
+}
 static void syscall_handler(struct intr_frame* f UNUSED) {
   uint32_t* args = ((uint32_t*)f->esp);
 
@@ -34,7 +43,9 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
    */
 
   /* printf("System call number: %d\n", args[0]); */
-
+  if (!is_valid_user_address((void*)args, 4)) {
+    print_and_exit(f);
+  }
   switch (args[0]) {
     case SYS_HALT: {
       shutdown_power_off();
@@ -42,6 +53,9 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
     }
 
     case SYS_EXIT: {
+      if (!is_valid_user_address((void*)args, 8)) {
+        print_and_exit(f);
+      }
       f->eax = args[1];
       printf("%s: exit(%d)\n", thread_current()->pcb->process_name, args[1]);
 
@@ -51,8 +65,13 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
 
       break;
     }
-
     case SYS_EXEC: {
+      if (!is_valid_user_address((void*)args, 8) || (void*)args[1] == NULL ||
+          !is_user_vaddr((void*)args[1]) ||
+          !is_valid_user_address((void*)args[1], strlen((char*)args[1]))) {
+        print_and_exit(f);
+        break;
+      }
       pid_t child_pid = process_execute((char*)args[1]);
       if (child_pid == TID_ERROR) {
         f->eax = -1;
@@ -62,21 +81,21 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
     }
 
     case SYS_WAIT: {
-      // TODO
+      if (!is_valid_user_address((void*)args, 8)) {
+        print_and_exit(f);
+        break;
+      }
+      f->eax = process_wait((pid_t)args[1]);
       break;
     }
 
     case SYS_CREATE: {
-      lock_acquire(&global_file_lock);
-
       if ((void*)args[1] == NULL || !is_user_vaddr((void*)args[1]) ||
           !is_valid_user_address((void*)args[1], strlen((char*)args[1]))) {
-        lock_release(&global_file_lock);
-        printf("%s: exit(-1)\n", thread_current()->pcb->process_name);
-        f->eax = -1;
-        process_exit();
+        print_and_exit(f);
         break;
       }
+      lock_acquire(&global_file_lock);
 
       f->eax = filesys_create((char*)args[1], args[2]);
 
@@ -89,10 +108,7 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
 
       if ((void*)args[1] == NULL || !is_user_vaddr((void*)args[1]) ||
           !is_valid_user_address((void*)args[1], strlen((char*)args[1]))) {
-        lock_release(&global_file_lock);
-        printf("%s: exit(-1)\n", thread_current()->pcb->process_name);
-        f->eax = -1;
-        process_exit();
+        print_and_exit(f);
         break;
       }
 
@@ -107,10 +123,7 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
 
       if ((void*)args[1] == NULL || !is_user_vaddr((void*)args[1]) ||
           !is_valid_user_address((void*)args[1], strlen((char*)args[1]))) {
-        lock_release(&global_file_lock);
-        printf("%s: exit(-1)\n", thread_current()->pcb->process_name);
-        f->eax = -1;
-        process_exit();
+        print_and_exit(f);
         break;
       }
 

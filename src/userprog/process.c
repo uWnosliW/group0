@@ -38,8 +38,8 @@ bool is_valid_user_address(void* ptr, size_t deref_size) {
   }
 
   /* If the last byte of ptr does not lie in user space or the address pointed to is unmapped, return false */
-  if (!is_user_vaddr(ptr + deref_size) ||
-      pagedir_get_page(thread_current()->pcb->pagedir, ptr + deref_size) == NULL) {
+  if (!is_user_vaddr((void*)((char*)ptr + deref_size)) ||
+      pagedir_get_page(thread_current()->pcb->pagedir, (void*)((char*)ptr + deref_size)) == NULL) {
     return false;
   }
 
@@ -106,7 +106,9 @@ pid_t process_execute(const char* file_name) {
   // if child fails to load, free shared data; everything else
   // is freed in start_process when it fails to load
   if (!(child_status->success)) {
+    list_remove(&(child_status->elem));
     free(child_status);
+    return TID_ERROR;
   }
 
   if (tid == TID_ERROR)
@@ -166,6 +168,7 @@ static void start_process(void* args_) {
     // If this happens, then an unfortuantely timed timer interrupt
     // can try to activate the pagedir, but it is now freed memory
     struct process* pcb_to_free = t->pcb;
+    sema_up(&(t->pcb->status->is_dead));
     t->pcb = NULL;
     free(pcb_to_free);
   }
@@ -174,7 +177,6 @@ static void start_process(void* args_) {
   palloc_free_page(file_name);
   if (!success) {
     sema_up(&temporary);
-    sema_up(&(t->pcb->status->is_dead));
     thread_exit();
   } else {
     t->pcb->status->success = true;
@@ -200,8 +202,38 @@ static void start_process(void* args_) {
    This function will be implemented in problem 2-2.  For now, it
    does nothing. */
 int process_wait(pid_t child_pid UNUSED) {
-  sema_down(&temporary);
-  return 0;
+
+  // find the child process in child_processes
+  struct list_elem* iter;
+  struct process_status* temp;
+  struct thread* cur = thread_current();
+  for (iter = list_begin(&(cur->pcb->child_processes));
+       iter != list_end(&(cur->pcb->child_processes)); iter = list_next(iter)) {
+    temp = list_entry(iter, struct process_status, elem);
+    if (temp->pid == child_pid) {
+      list_remove(&(temp->elem));
+      break;
+    }
+  }
+
+  // either this process is not a direct child, or we already called wait()
+  if (iter == list_end(&(cur->pcb->child_processes))) {
+    return -1;
+  }
+
+  // wait for child to finish
+  sema_down(&(temp->is_dead));
+
+  //decrement ref_count and return the exit code
+  lock_acquire(&(temp->lock));
+  int exit_code = temp->exit_code;
+  temp->ref_count -= 1;
+  if (temp->ref_count == 0) {
+    free(temp);
+  } else {
+    lock_release(&(temp->lock));
+  }
+  return exit_code;
 }
 
 /* Free the current process's resources. */
@@ -214,7 +246,7 @@ void process_exit(void) {
   cur->pcb->status->ref_count -= 1;
 
   //if things don't work, put back this lock
-  // lock_release(&(cur->pcb->status->lock));
+  lock_release(&(cur->pcb->status->lock));
 
   /* If this thread does not have a PCB, don't worry */
   if (cur->pcb == NULL) {
@@ -240,11 +272,8 @@ void process_exit(void) {
 
   struct process_status* status = cur->pcb->status;
 
-  // the child thread is dead
-  sema_up(&(status->is_dead));
-
   //if things don't work, put back this lock
-  // lock_aquire(&(cur->pcb->status->lock));
+  lock_acquire(&(status->lock));
   if (status->ref_count <= 0) {
     free(status);
   } else {
@@ -254,19 +283,28 @@ void process_exit(void) {
   struct list_elem* iter;
   struct process_status* temp;
   for (iter = list_begin(&(cur->pcb->child_processes));
-       iter != list_end(&(cur->pcb->child_processes)); iter = list_next(iter)) {
+       iter != list_end(&(cur->pcb->child_processes));) {
     temp = list_entry(iter, struct process_status, elem);
 
-    lock_acquire(&(cur->pcb->status->lock));
+    lock_acquire(&(temp->lock));
     temp->ref_count -= 1;
+    lock_release(&(temp->lock));
+
+    // update iter first, else removing/freeing temp will mess up iterating through the list
+    iter = list_next(iter);
 
     // todo: troll lock_release. might need to revisit
+    lock_acquire(&(temp->lock));
     if (temp->ref_count <= 0) {
+      list_remove(&(temp->elem));
       free(temp);
     } else {
-      lock_release(&(status->lock));
+      lock_release(&(temp->lock));
     }
   }
+
+  // the child thread is dead
+  sema_up(&(status->is_dead));
 
   /* Free the PCB of this process and kill this thread
      Avoid race where PCB is freed before t->pcb is set to NULL
