@@ -27,7 +27,7 @@ static struct semaphore temporary;
 static thread_func start_process NO_RETURN;
 static bool load(const char* file_name, void (**eip)(void), void** esp);
 
-bool is_valid_user_address(void* ptr, int numBytes) {
+bool is_valid_user_address(void* ptr, size_t deref_size) {
   if (ptr == NULL) {
     return false;
   }
