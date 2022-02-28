@@ -4,6 +4,7 @@
 #include "lib/kernel/list.h"
 #include "threads/thread.h"
 #include <stdint.h>
+#include "filesys/file.h"
 
 // At most 8MB can be allocated to the stack
 // These defines will be used in Project 2: Multithreading
@@ -37,6 +38,7 @@ struct process {
   struct process_status* status; // status of the current thread
   struct list child_processes;   // List of process_status's of the children processes
   struct list fd_table;          // List of fd_table_entry_ts, relevant in File syscalls
+  struct file* executable;
 };
 
 struct process_status {

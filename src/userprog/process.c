@@ -341,9 +341,9 @@ void process_exit(void) {
   sema_up(&(status->is_dead));
 
   // allow write to current executable
-  struct file* file = filesys_open(cur->pcb->process_name);
-  file_allow_write(file);
-  file_close(file);
+  file_allow_write(cur->pcb->executable);
+  file_close(cur->pcb->executable);
+
   /* Free the PCB of this process and kill this thread
      Avoid race where PCB is freed before t->pcb is set to NULL
      If this happens, then an unfortuantely timed timer interrupt
@@ -476,6 +476,7 @@ bool load(const char* file_name, void (**eip)(void), void** esp) {
     printf("load: %s: open failed\n", file_name);
     goto done;
   }
+  t->pcb->executable = file;
 
   /* Read and verify executable header. */
   if (file_read(file, &ehdr, sizeof ehdr) != sizeof ehdr ||
