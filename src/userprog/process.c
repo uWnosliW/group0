@@ -113,6 +113,9 @@ pid_t process_execute(const char* file_name) {
 
   // initialize the process_status of the child
   struct process_status* child_status = malloc(sizeof(struct process_status));
+  if (child_status == NULL) {
+    return TID_ERROR;
+  }
   list_push_back(&(thread_current()->pcb->child_processes), &(child_status->elem));
   child_status->exit_code = 0;
   sema_init(&(child_status->is_dead), 0);
@@ -130,12 +133,17 @@ pid_t process_execute(const char* file_name) {
 
   //initializing the args passed into start_process
   struct start_thread_arg* child_args = malloc(sizeof(struct start_thread_arg));
+  if (child_args == NULL) {
+    return TID_ERROR;
+    free(child_status);
+  }
   child_args->file_name = fn_copy;
   child_args->status = child_status;
 
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create(file_name, PRI_DEFAULT, start_process, child_args);
   sema_down(&(child_status->is_dead));
+  free(child_args);
 
   // if child fails to load, free shared data; everything else
   // is freed in start_process when it fails to load
@@ -348,12 +356,24 @@ void process_exit(void) {
       lock_release(&(temp->lock));
     }
   }
+  // close all files
+  struct fd_table_entry* tempf;
+  for (iter = list_begin(&(cur->pcb->fd_table)); iter != list_end(&(cur->pcb->fd_table));) {
+    tempf = list_entry(iter, struct fd_table_entry, elem);
+
+    // update iter first, else removing/freeing temp will mess up iterating through the list
+    iter = list_next(iter);
+
+    // free the file and remove it from the fd table
+    list_remove(&(tempf->elem));
+    file_close(tempf->file);
+    free(tempf);
+  }
 
   // the child thread is dead
   sema_up(&(status->is_dead));
 
   // allow write to current executable
-  file_allow_write(cur->pcb->executable);
   file_close(cur->pcb->executable);
 
   /* Free the PCB of this process and kill this thread
