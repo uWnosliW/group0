@@ -23,11 +23,12 @@ switch_threads:
 	#
 	# This stack frame must match the one set up by thread_create()
 	# in size.
+
 	pushl %ebx
 	pushl %ebp
 	pushl %esi
 	pushl %edi
-# save fpu
+  # save fpu
   subl $108, %esp
   fsave 0(%esp)
 
@@ -37,21 +38,21 @@ switch_threads:
 
 	# Save current stack pointer to old thread's stack, if any.
 	movl SWITCH_CUR(%esp), %eax
-	movl %esp, (%eax,%edx,1)
+	movl %esp, (%eax,%edx,1) # NOTE: eax has weird value
 
 	# Restore stack pointer from new thread's stack.
 	movl SWITCH_NEXT(%esp), %ecx
 	movl (%ecx,%edx,1), %esp
 
-# restore fpu
+  # restore fpu
   frstor 0(%esp)
   addl $108, %esp
-
 	# Restore caller's register state.
 	popl %edi
 	popl %esi
 	popl %ebp
 	popl %ebx
+
         ret
 .endfunc
 

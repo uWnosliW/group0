@@ -11,6 +11,7 @@
 #include "filesys/file.h"
 #include "devices/shutdown.h"
 #include "lib/string.h"
+#include <float.h>
 
 /* Global file operation lock (to be removed later) */
 static lock_t global_file_lock;
@@ -317,7 +318,7 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
     }
 
     case SYS_COMPUTE_E: {
-      // TODO
+      f->eax = sys_sum_to_e(args[1]);
       break;
     }
 

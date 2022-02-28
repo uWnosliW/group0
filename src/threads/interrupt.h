@@ -17,6 +17,8 @@ enum intr_level intr_disable(void);
 
 /* Interrupt stack frame. */
 struct intr_frame {
+  uint8_t fpu[108]; /* FPU */
+
   /* Pushed by intr_entry in intr-stubs.S.
        These are the interrupted task's saved registers. */
   uint32_t edi;       /* Saved EDI. */
@@ -31,8 +33,6 @@ struct intr_frame {
   uint16_t fs, : 16;  /* Saved FS segment register. */
   uint16_t es, : 16;  /* Saved ES segment register. */
   uint16_t ds, : 16;  /* Saved DS segment register. */
-
-  uint8_t fpu[108]; /* FPU */
 
   /* Pushed by intrNN_stub in intr-stubs.S. */
   uint32_t vec_no; /* Interrupt vector number. */

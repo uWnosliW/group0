@@ -197,10 +197,10 @@ static void start_process(void* args_) {
 
     /* init fpu for intr_frame */
     uint8_t tmp[108];
-    asm volatile ("fsave %0" : "=m"(tmp)); // tmp save fpu of parent thread
-    asm volatile ("fninit"); // fninit fpu for child thread
-    asm volatile ("fsave %0" : "=m"(if_.fpu)); // save newly inited fpu for child thread
-    asm volatile ("frstor %0" : : "m"(tmp)); // restore fpu of parent thread to continue routine
+    asm volatile("fsave (%0)" : : "g"(&tmp));     // tmp save fpu of parent thread
+    asm volatile("fninit");                       // fninit fpu for child thread
+    asm volatile("fsave (%0)" : : "g"(&if_.fpu)); // save newly inited fpu for child thread
+    asm volatile("frstor (%0)" : : "g"(&tmp)); // restore fpu of parent thread to continue routine
   }
 
   /* Handle failure with succesful PCB malloc. Must free the PCB */
@@ -223,10 +223,11 @@ static void start_process(void* args_) {
     t->pcb->status->success = true;
   }
 
-  /* NOTE: quirky */
-  asm volatile ("fninit"); // ???
-
   sema_up(&(t->pcb->status->is_dead));
+
+  /* NOTE: quirky */
+  asm volatile("fninit"); // ???
+
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
      threads/intr-stubs.S).  Because intr_exit takes all of its

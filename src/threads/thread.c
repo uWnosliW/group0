@@ -207,10 +207,10 @@ tid_t thread_create(const char* name, int priority, thread_func* function, void*
   sf->ebp = 0;
   /* init fpu for stf */
   uint8_t tmp[108];
-  asm volatile ("fsave %0" : "=m"(tmp)); // tmp save fpu of parent thread
-  asm volatile ("fninit"); // fninit fpu of child thread
-  asm volatile ("fsave %0" : "=m"(sf->fpu)); // save newly inited fpu for child thread
-  asm volatile ("frstor %0" : : "m"(tmp)); // restore fpu of parent thread
+  asm volatile("fsave (%0)" : : "g"(&tmp));     // tmp save fpu of parent thread
+  asm volatile("fninit");                       // fninit fpu of child thread
+  asm volatile("fsave (%0)" : : "g"(&sf->fpu)); // save newly inited fpu for child thread
+  asm volatile("frstor (%0)" : : "g"(&tmp));    // restore fpu of parent thread
 
   /* Add to run queue. */
   thread_unblock(t);
