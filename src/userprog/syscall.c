@@ -25,8 +25,8 @@ void syscall_init(void) {
 
 void print_and_exit(struct intr_frame* f, int exit_code) {
   printf("%s: exit(%d)\n", thread_current()->pcb->process_name, exit_code);
-  f->eax = -1;
-  thread_current()->pcb->status->exit_code = -1;
+  f->eax = exit_code;
+  thread_current()->pcb->status->exit_code = exit_code;
   process_exit();
 }
 
@@ -54,10 +54,7 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
       if (!is_valid_user_address((void*)args, 8)) {
         print_and_exit(f, -1);
       }
-      f->eax = args[1];
-      printf("%s: exit(%d)\n", thread_current()->pcb->process_name, args[1]);
-      thread_current()->pcb->status->exit_code = (int)args[1];
-      process_exit();
+      print_and_exit(f, args[1]);
       break;
     }
     case SYS_EXEC: {
