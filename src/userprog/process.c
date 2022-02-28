@@ -342,8 +342,10 @@ void process_exit(void) {
 
   // allow write to current executable
   struct file* file = filesys_open(cur->pcb->process_name);
-  file_allow_write(file);
-  file_close(file);
+  if (file != NULL) {
+    file_allow_write(file);
+    file_close(file);
+  }
   /* Free the PCB of this process and kill this thread
      Avoid race where PCB is freed before t->pcb is set to NULL
      If this happens, then an unfortuantely timed timer interrupt
