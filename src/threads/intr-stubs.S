@@ -24,12 +24,16 @@ intr_entry:
 	pushl %gs
 	pushal
 
+  /* save FPU */
+  subl $108, %esp
+  fsave 0(%esp)
+
 	/* Set up kernel environment. */
 	cld			/* String instructions go upward. */
 	mov $SEL_KDSEG, %eax	/* Initialize segment registers. */
 	mov %eax, %ds
 	mov %eax, %es
-	leal 56(%esp), %ebp	/* Set up frame pointer. */
+	leal 164(%esp), %ebp	/* Set up frame pointer. */
 
 	/* Call interrupt handler. */
 	pushl %esp
@@ -50,6 +54,10 @@ intr_entry:
 .func intr_exit
 intr_exit:
 	/* Restore caller's registers. */
+  /* restore FPU */
+  frstor 0(%esp)
+  addl $108, %esp
+
 	popal
 	popl %gs
 	popl %fs

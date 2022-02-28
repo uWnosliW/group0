@@ -27,6 +27,9 @@ switch_threads:
 	pushl %ebp
 	pushl %esi
 	pushl %edi
+# save fpu
+  subl $108, %esp
+  fsave 0(%esp)
 
 	# Get offsetof (struct thread, stack).
 .globl thread_stack_ofs
@@ -39,6 +42,10 @@ switch_threads:
 	# Restore stack pointer from new thread's stack.
 	movl SWITCH_NEXT(%esp), %ecx
 	movl (%ecx,%edx,1), %esp
+
+# restore fpu
+  frstor 0(%esp)
+  addl $108, %esp
 
 	# Restore caller's register state.
 	popl %edi

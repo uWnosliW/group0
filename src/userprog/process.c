@@ -194,6 +194,13 @@ static void start_process(void* args_) {
     if_.cs = SEL_UCSEG;
     if_.eflags = FLAG_IF | FLAG_MBS;
     success = load(file_name, &if_.eip, &if_.esp);
+
+    /* init fpu for intr_frame */
+    uint8_t tmp[108];
+    asm volatile ("fsave %0" : "=m"(tmp)); // tmp save fpu of parent thread
+    asm volatile ("fninit"); // fninit fpu for child thread
+    asm volatile ("fsave %0" : "=m"(if_.fpu)); // save newly inited fpu for child thread
+    asm volatile ("frstor %0" : : "m"(tmp)); // restore fpu of parent thread to continue routine
   }
 
   /* Handle failure with succesful PCB malloc. Must free the PCB */
@@ -215,6 +222,10 @@ static void start_process(void* args_) {
   } else {
     t->pcb->status->success = true;
   }
+
+  /* NOTE: quirky */
+  asm volatile ("fninit"); // ???
+
   sema_up(&(t->pcb->status->is_dead));
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
