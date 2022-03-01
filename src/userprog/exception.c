@@ -72,6 +72,7 @@ static void kill(struct intr_frame* f) {
   /* The interrupt frame's code segment value tells us where the
      exception originated. */
   printf("%s: exit(%d)\n", thread_current()->pcb->process_name, -1);
+  thread_current()->pcb->status->exit_code = -1;
   switch (f->cs) {
     case SEL_UCSEG:
       /* User's code segment, so it's a user exception, as we
