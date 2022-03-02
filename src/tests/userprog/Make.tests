@@ -165,7 +165,7 @@ tests/userprog/exec-multiple_PUTFILES += tests/userprog/child-simple
 tests/userprog/wait-simple_PUTFILES += tests/userprog/child-simple
 tests/userprog/wait-twice_PUTFILES += tests/userprog/child-simple
 tests/userprog/seek-past-eof_PUTFILES += tests/userprog/sample.txt
-tests/userprog/tell-std_PUTFILES += tests/zuserprog/sample.txt
+tests/userprog/tell-std_PUTFILES += tests/userprog/sample.txt
 
 
 tests/userprog/exec-arg_PUTFILES += tests/userprog/child-args
