@@ -1,17 +1,17 @@
-#include "userprog/syscall.h"
+#include <float.h>
 #include <stdio.h>
+#include <string.h>
 #include <syscall-nr.h>
 #include "devices/input.h"
+#include "devices/shutdown.h"
+#include "filesys/file.h"
+#include "filesys/filesys.h"
 #include "threads/malloc.h"
 #include "threads/thread.h"
 #include "threads/synch.h"
 #include "threads/vaddr.h"
 #include "userprog/process.h"
-#include "filesys/filesys.h"
-#include "filesys/file.h"
-#include "devices/shutdown.h"
-#include "lib/string.h"
-#include <float.h>
+#include "userprog/syscall.h"
 
 /* Global file operation lock (to be removed later) */
 static lock_t global_file_lock;
@@ -23,50 +23,47 @@ void syscall_init(void) {
   intr_register_int(0x30, 3, INTR_ON, syscall_handler, "syscall");
 }
 
+/* print_and_exit - Helper method that sets the return value in the interrupt frame, prints the exit message, and exits */
 void print_and_exit(struct intr_frame* f, int exit_code) {
   printf("%s: exit(%d)\n", thread_current()->pcb->process_name, exit_code);
-  f->eax = -1;
-  thread_current()->pcb->status->exit_code = -1;
+  f->eax = exit_code;
+  thread_current()->pcb->status->exit_code = exit_code;
   process_exit();
 }
 
 static void syscall_handler(struct intr_frame* f UNUSED) {
   uint32_t* args = ((uint32_t*)f->esp);
 
-  /*
-   * The following print statement, if uncommented, will print out the syscall
-   * number whenever a process enters a system call. You might find it useful
-   * when debugging. It will cause tests to fail, however, so you should not
-   * include it in your final submission.
-   */
-
-  /* printf("System call number: %d\n", args[0]); */
-  if (!is_valid_user_address((void*)args, 4)) {
+  /* Check that args[0] is in user space and mapped */
+  if (!is_valid_buffer((void*)args, 4)) {
     print_and_exit(f, -1);
   }
+
   switch (args[0]) {
     case SYS_HALT: {
-      shutdown_power_off();
+      shutdown_power_off(); /* Shut down */
       break;
     }
 
     case SYS_EXIT: {
-      if (!is_valid_user_address((void*)args, 8)) {
+      /* Verify args[1] is in user space and mapped, else exit(-1) */
+      if (!is_valid_buffer((void*)&args[1], 4)) {
         print_and_exit(f, -1);
       }
-      f->eax = args[1];
-      printf("%s: exit(%d)\n", thread_current()->pcb->process_name, args[1]);
-      thread_current()->pcb->status->exit_code = (int)args[1];
-      process_exit();
+
+      /* Exit with the exit code passed in */
+      print_and_exit(f, args[1]);
       break;
     }
+
     case SYS_EXEC: {
-      if (!is_valid_user_address((void*)args, 8) || (void*)args[1] == NULL ||
-          !is_valid_user_address((void*)args[1], 4) ||
-          !is_valid_user_address((void*)args[1], strlen((char*)args[1]))) {
+      /* Verify args[1] and the string it points to are in user space and mapped, else exit(-1) */
+      if (!is_valid_buffer((void*)&args[1], 4) || !is_valid_string((char*)args[1])) {
         print_and_exit(f, -1);
         break;
       }
+
+      /* Execute the executable in args[1], setting the return code to -1 on error or the PID of the child if successful */
       pid_t child_pid = process_execute((char*)args[1]);
       if (child_pid == TID_ERROR) {
         f->eax = -1;
@@ -76,54 +73,65 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
     }
 
     case SYS_WAIT: {
-      if (!is_valid_user_address((void*)args, 8)) {
+      /* Verify args[1] and the string it points to are in user space and mapped, else exit(-1) */
+      if (!is_valid_buffer((void*)&args[1], 4)) {
         print_and_exit(f, -1);
         break;
       }
+
+      /* Wait on the process with PID args[1] and return the process' exit code after it finishes */
       f->eax = process_wait((pid_t)args[1]);
       break;
     }
 
     case SYS_CREATE: {
-      lock_acquire(&global_file_lock);
+      lock_acquire(&global_file_lock); /* Acquire lock */
 
+      /* Verify that the string passed in is valid, exit(-1) if not */
       if (!is_valid_string((char*)args[1])) {
-        lock_release(&global_file_lock);
+        lock_release(&global_file_lock); /* Release lock */
         print_and_exit(f, -1);
       }
 
+      /* Return the result of filesys_create with the arguments passed in */
       f->eax = filesys_create((char*)args[1], args[2]);
 
-      lock_release(&global_file_lock);
+      lock_release(&global_file_lock); /* Release lock */
       break;
     }
 
     case SYS_REMOVE: {
-      lock_acquire(&global_file_lock);
+      lock_acquire(&global_file_lock); /* Acquire lock */
 
+      /* Verify that the string passed in is valid, exit(-1) if not */
       if (!is_valid_string((char*)args[1])) {
-        lock_release(&global_file_lock);
+        lock_release(&global_file_lock); /* Release lock */
         print_and_exit(f, -1);
       }
 
+      /* Return the result of filesys_remove with the arguments passed in */
       f->eax = filesys_remove((char*)args[1]);
 
-      lock_release(&global_file_lock);
+      lock_release(&global_file_lock); /* Release lock */
       break;
     }
 
     case SYS_OPEN: {
-      lock_acquire(&global_file_lock);
+      lock_acquire(&global_file_lock); /* Acquire lock */
 
+      /* Verify that the string passed in is valid, exit(-1) if not */
       if (!is_valid_string((char*)args[1])) {
-        lock_release(&global_file_lock);
+        lock_release(&global_file_lock); /* Release lock */
         print_and_exit(f, -1);
       }
 
+      /* Try opening the file with name args[1] */
       struct file* file_ptr = filesys_open((char*)args[1]);
+
       if (file_ptr == NULL) {
-        f->eax = -1;
+        f->eax = -1; /* Set return code to -1 if unsuccessful */
       } else {
+        /* Iterate through the file descriptor table to find the first open file descriptor id */
         struct list* fd_table_ptr = &thread_current()->pcb->fd_table;
         struct fd_table_entry* curr_fd;
         uint32_t fd_num = 2;
@@ -139,6 +147,7 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
           fd_num++;
         }
 
+        /* Create a new file descriptor for the current file and insert it into the proper location in the list */
         struct fd_table_entry* new_fd = malloc(sizeof(struct fd_table_entry));
         new_fd->elem.prev = prev;
         new_fd->elem.next = curr;
@@ -147,34 +156,38 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
 
         list_insert(curr, &new_fd->elem);
 
+        /* Return the file descriptor id of the new file descriptor */
         f->eax = fd_num;
       }
 
-      lock_release(&global_file_lock);
+      lock_release(&global_file_lock); /* Release lock */
       break;
     }
 
     case SYS_FILESIZE: {
-      lock_acquire(&global_file_lock);
+      lock_acquire(&global_file_lock); /* Acquire lock */
 
+      /* Try getting the file descriptor with id args[1] */
       struct fd_table_entry* fdt_entry = get_fd_table_entry(args[1]);
 
+      /* If not found, return -1, else return the result of file_length on the file descriptor's file */
       if (fdt_entry == NULL) {
         f->eax = -1;
       } else {
         f->eax = file_length(fdt_entry->file);
       }
 
-      lock_release(&global_file_lock);
+      lock_release(&global_file_lock); /* Release lock */
       break;
     }
 
     case SYS_READ: {
-      lock_acquire(&global_file_lock);
+      lock_acquire(&global_file_lock); /* Acquire lock */
 
       if (args[1] == STDIN_FILENO) {
-        lock_release(&global_file_lock);
+        lock_release(&global_file_lock); /* Release lock since we don't need it for stdin */
 
+        /* In the special case of reading from stdin, call input_getc and populate the buffer at args[2] until we've read enough bytes and return the amount of bytes we've read */
         char* casted_buffer = (char*)args[2];
         size_t bytes_to_read = args[3], bytes_read = 0;
 
@@ -189,34 +202,39 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
         break;
       }
 
-      if (!is_valid_string((char*)args[2])) {
-        lock_release(&global_file_lock);
+      /* If our buffer is not entirely in user memory and fully mapped, exit(-1) */
+      if (!is_valid_buffer((void*)args[2], args[3])) {
+        lock_release(&global_file_lock); /* Release lock */
         print_and_exit(f, -1);
       }
 
+      /* Try getting the file descriptor with id args[1] */
       struct fd_table_entry* fdt_entry = get_fd_table_entry(args[1]);
 
+      /* If not found, return -1, else return the result of file_read on the file descriptor's file */
       if (fdt_entry == NULL) {
         f->eax = -1;
       } else {
         f->eax = file_read(fdt_entry->file, (void*)args[2], (off_t)args[3]);
       }
 
-      lock_release(&global_file_lock);
+      lock_release(&global_file_lock); /* Release lock */
       break;
     }
 
     case SYS_WRITE: {
-      lock_acquire(&global_file_lock);
+      lock_acquire(&global_file_lock); /* Acquire lock */
 
-      if (!is_valid_user_address((void*)args[2], args[3])) {
-        lock_release(&global_file_lock);
+      /* If our buffer is not entirely in user memory and fully mapped, exit(-1) */
+      if (!is_valid_buffer((void*)args[2], args[3])) {
+        lock_release(&global_file_lock); /* Release lock */
         print_and_exit(f, -1);
       }
 
       if (args[1] == STDOUT_FILENO) {
-        lock_release(&global_file_lock);
+        lock_release(&global_file_lock); /* Release lock because we don't need it for stdout */
 
+        /* In the special case of reading from stdin, call putbuf and populate the buffer at args[2] min(bytes_left, 256) bytes at a time until we've written enough bytes and return the amount of bytes we've read */
         char* buffer = (char*)args[2];
         size_t bytes_left = args[3];
 
@@ -238,12 +256,14 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
       struct fd_table_entry* fdt_entry = get_fd_table_entry(args[1]);
 
       if (fdt_entry == NULL) {
-        f->eax = -1;
+        f->eax = -1; /* If file descriptor not found, return -1 */
       } else {
+        /* Create a new buffer of size args[3] and copy args[3] of the bytes from the buffer at args[2] into it */
         char *original_buffer, *buffer;
         original_buffer = buffer = calloc(sizeof(char), args[3]);
         memcpy(buffer, (char*)args[2], args[3]);
 
+        /* Read from fdt_entry->file and populate the buffer at args[2] min(bytes_left, 256) bytes at a time until we've written enough bytes and return the amount of bytes we've read */
         size_t bytes_left = args[3], bytes_written, expected_bytes_written;
 
         f->eax = args[3];
@@ -266,63 +286,75 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
           }
         }
 
+        /* Free the buffer we made after we're done */
         free(original_buffer);
       }
 
-      lock_release(&global_file_lock);
+      lock_release(&global_file_lock); /* Release lock */
       break;
     }
 
     case SYS_SEEK: {
-      lock_acquire(&global_file_lock);
+      lock_acquire(&global_file_lock); /* Acquire lock */
 
+      /* Try getting the file descriptor with id args[1] */
       struct fd_table_entry* fdt_entry = get_fd_table_entry(args[1]);
 
+      /* If found, change file descriptor's file's position to args[2] */
       if (fdt_entry != NULL) {
-        fdt_entry->file->pos = args[2];
+        file_seek(fdt_entry->file, args[2]);
       }
 
-      lock_release(&global_file_lock);
+      lock_release(&global_file_lock); /* Release lock */
       break;
     }
 
     case SYS_TELL: {
-      lock_acquire(&global_file_lock);
+      lock_acquire(&global_file_lock); /* Acquire lock */
 
+      /* Try getting the file descriptor with id args[1] */
       struct fd_table_entry* fdt_entry = get_fd_table_entry(args[1]);
 
+      /* If not found, return -1, else return the result of file_tell on the file descriptor's file */
       if (fdt_entry == NULL) {
         f->eax = -1;
       } else {
-        f->eax = fdt_entry->file->pos;
+        f->eax = file_tell(fdt_entry->file);
       }
 
-      lock_release(&global_file_lock);
+      lock_release(&global_file_lock); /* Release lock */
       break;
     }
 
     case SYS_CLOSE: {
-      lock_acquire(&global_file_lock);
+      lock_acquire(&global_file_lock); /* Acquire lock */
 
+      /* Try getting the file descriptor with id args[1] */
       struct fd_table_entry* fdt_entry = get_fd_table_entry(args[1]);
 
+      /* If not found exit(-1) */
       if (fdt_entry == NULL) {
-        lock_release(&global_file_lock);
+        lock_release(&global_file_lock); /* Release lock */
         print_and_exit(f, -1);
       }
 
+      /* Close the file, remove it from the file descriptor, free the file descriptor */
       file_close(fdt_entry->file);
       list_remove(&fdt_entry->elem);
-      lock_release(&global_file_lock);
+      free(fdt_entry);
+
+      lock_release(&global_file_lock); /* Release lock */
       break;
     }
 
     case SYS_COMPUTE_E: {
+      /* Return the result of calling sys_sum_to_e on args[1] */
       f->eax = sys_sum_to_e(args[1]);
       break;
     }
 
     case SYS_PRACTICE: {
+      /* Return args[1] + 1 */
       f->eax = args[1] + 1;
       break;
     }

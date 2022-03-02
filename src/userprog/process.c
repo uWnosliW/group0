@@ -1,15 +1,10 @@
-#include "userprog/process.h"
 #include <debug.h>
 #include <inttypes.h>
 #include <round.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "userprog/gdt.h"
-#include "userprog/pagedir.h"
-#include "userprog/tss.h"
 #include "filesys/directory.h"
-#include "filesys/file.h"
 #include "filesys/filesys.h"
 #include "threads/flags.h"
 #include "threads/init.h"
@@ -17,14 +12,19 @@
 #include "threads/malloc.h"
 #include "threads/palloc.h"
 #include "threads/synch.h"
-#include "threads/thread.h"
 #include "threads/vaddr.h"
+#include "userprog/process.h"
+#include "userprog/gdt.h"
+#include "userprog/pagedir.h"
+#include "userprog/tss.h"
 
 static struct semaphore temporary;
 static thread_func start_process NO_RETURN;
 static bool load(const char* file_name, void (**eip)(void), void** esp);
 
-bool is_valid_user_address(void* ptr, size_t deref_size) {
+/* is_valid_buffer - Returns whether the first size bytes of the buffer pointed to by ptr are in user space and mapped. */
+bool is_valid_buffer(void* ptr, size_t size) {
+  /* NULL is an invalid buffer */
   if (ptr == NULL) {
     return false;
   }
@@ -35,44 +35,57 @@ bool is_valid_user_address(void* ptr, size_t deref_size) {
   }
 
   /* If the last byte of ptr does not lie in user space or the address pointed to is unmapped, return false */
-  if (!is_user_vaddr((void*)((char*)ptr + deref_size)) ||
-      pagedir_get_page(thread_current()->pcb->pagedir, (void*)((char*)ptr + deref_size)) == NULL) {
+  if (!is_user_vaddr((void*)((char*)ptr + size)) ||
+      pagedir_get_page(thread_current()->pcb->pagedir, (void*)((char*)ptr + size)) == NULL) {
     return false;
   }
 
+  /* If we got here the first size bytes were valid */
   return true;
 }
 
+/* is_valid_string - Returns whether the entirety of the string the char* passed in points to is in user space and mapped. */
 bool is_valid_string(char* ptr) {
+  /* Initial check to make sure ptr is not null, a valid user address, and mapped to a valid page */
   if (ptr == NULL || !is_user_vaddr(ptr) ||
       pagedir_get_page(thread_current()->pcb->pagedir, ptr) == NULL) {
     return false;
   }
 
+  /* Repeat the checks from before byte by byte until a null byte is reached */
   char c = *ptr;
   while (c != '\0') {
     c = *ptr++;
+
+    /* If ptr is not a valid user address or is unmapped, return false */
     if (!is_user_vaddr(ptr) || pagedir_get_page(thread_current()->pcb->pagedir, ptr) == NULL) {
       return false;
     }
   }
 
+  /* If we get here all bytes were valid */
   return true;
 }
 
+/* get_fd_table_entry - Returns the file descriptor matching the id passed in. If no match is found returns NULL. */
 struct fd_table_entry* get_fd_table_entry(uint32_t fd) {
   struct list* fd_table_ptr = &thread_current()->pcb->fd_table;
   struct fd_table_entry* curr_fd;
 
+  /* Iterate through the file descriptor table in the current thread */
   struct list_elem* curr = list_begin(fd_table_ptr);
   while (curr != list_end(fd_table_ptr)) {
     curr_fd = list_entry(curr, struct fd_table_entry, elem);
+
+    /* If a match is found, break */
     if (curr_fd->fd == fd) {
       break;
     }
+
     curr = list_next(curr);
   }
 
+  /* If we reached the end no matches were found, return NULL, else return the matched file descriptor */
   if (curr == list_end(fd_table_ptr)) {
     return NULL;
   } else {
@@ -89,7 +102,7 @@ void userprog_init(void) {
   bool success;
 
   /* Allocate process control block
-     It is imoprtant that this is a call to calloc and not malloc,
+     It is important that this is a call to calloc and not malloc,
      so that t->pcb->pagedir is guaranteed to be NULL (the kernel's
      page directory) when t->pcb is assigned, because a timer interrupt
      can come at any time and activate our pagedir */
@@ -99,28 +112,34 @@ void userprog_init(void) {
   /* Kill the kernel if we did not succeed */
   ASSERT(success);
 
-  list_init(&(t->pcb->child_processes));
-  list_init(&(t->pcb->fd_table));
+  /* Initialize child process list and file descriptor table in the PCB */
+  list_init(&t->pcb->child_processes);
+  list_init(&t->pcb->fd_table);
 }
 
 /* Starts a new thread running a user program loaded from
-   FILENAME.  The new thread may be scheduled (and may even exit)
-   before process_execute() returns.  Returns the new process's
+   FILENAME. The new thread may be scheduled (and may even exit)
+   before process_execute() returns. Returns the new process's
    process id, or TID_ERROR if the thread cannot be created. */
 pid_t process_execute(const char* file_name) {
   char* fn_copy;
   tid_t tid;
 
-  // initialize the process_status of the child
+  /* Initialize the child's process_status, erroring if malloc fails */
   struct process_status* child_status = malloc(sizeof(struct process_status));
-  list_push_back(&(thread_current()->pcb->child_processes), &(child_status->elem));
+  if (child_status == NULL) {
+    return TID_ERROR;
+  }
+  list_push_back(&thread_current()->pcb->child_processes, &child_status->elem);
   child_status->exit_code = 0;
-  sema_init(&(child_status->is_dead), 0);
+  sema_init(&child_status->is_dead, 0);
   child_status->success = false;
-  lock_init(&(child_status->lock));
+  lock_init(&child_status->lock);
   child_status->ref_count = 2;
 
+  /* Initialize semaphore to wait on the child process */
   sema_init(&temporary, 0);
+
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
   fn_copy = palloc_get_page(0);
@@ -128,31 +147,38 @@ pid_t process_execute(const char* file_name) {
     return TID_ERROR;
   strlcpy(fn_copy, file_name, PGSIZE);
 
-  //initializing the args passed into start_process
+  /* Initialize the child arguments passed into start_process, erroring if malloc fails */
   struct start_thread_arg* child_args = malloc(sizeof(struct start_thread_arg));
+  if (child_args == NULL) {
+    return TID_ERROR;
+    free(child_status);
+  }
   child_args->file_name = fn_copy;
   child_args->status = child_status;
 
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create(file_name, PRI_DEFAULT, start_process, child_args);
-  sema_down(&(child_status->is_dead));
+  sema_down(&child_status->is_dead);
+  free(child_args);
 
-  // if child fails to load, free shared data; everything else
-  // is freed in start_process when it fails to load
-  if (!(child_status->success)) {
-    list_remove(&(child_status->elem));
+  /* If child fails to load, free shared data. Everything else
+     is freed in start_process when it fails to load */
+  if (!child_status->success) {
+    list_remove(&child_status->elem);
     free(child_status);
     return TID_ERROR;
   }
 
+  /* Free the copy of FILE_NAME if thread creation failed */
   if (tid == TID_ERROR)
     palloc_free_page(fn_copy);
+
   return tid;
 }
 
-/* A thread function that loads a user process and starts it
-   running. */
+/* A thread function that loads a user process and starts it running. */
 static void start_process(void* args_) {
+  /* Cast generic pointer passed in and get the arguments passed in*/
   struct start_thread_arg* args = (struct start_thread_arg*)args_;
   char* file_name = args->file_name;
   struct process_status* status = args->status;
@@ -161,7 +187,7 @@ static void start_process(void* args_) {
   struct intr_frame if_;
   bool success, pcb_success;
 
-  // init's pid of child thread
+  /* Set pid of child thread to that of the current thread */
   status->pid = t->tid;
 
   /* Allocate process control block */
@@ -170,19 +196,19 @@ static void start_process(void* args_) {
 
   /* Initialize process control block */
   if (success) {
-    // Ensure that timer_interrupt() -> schedule() -> process_activate()
-    // does not try to activate our uninitialized pagedir
+    /* Ensure that timer_interrupt() -> schedule() -> process_activate()
+       does not try to activate our uninitialized pagedir */
     new_pcb->pagedir = NULL;
     t->pcb = new_pcb;
 
-    // make child point to it's status
+    /* Make child point to its status */
     t->pcb->status = status;
 
-    // Continue initializing the PCB as normal
+    /* Continue initializing the PCB as normal */
     t->pcb->main_thread = t;
     strlcpy(t->pcb->process_name, t->name, sizeof t->name);
 
-    // Initilaize each list
+    /* Initialize the PCB's child process list and file descriptor table */
     list_init(&t->pcb->child_processes);
     list_init(&t->pcb->fd_table);
   }
@@ -195,19 +221,19 @@ static void start_process(void* args_) {
     if_.eflags = FLAG_IF | FLAG_MBS;
     success = load(file_name, &if_.eip, &if_.esp);
 
-    /* init fpu for intr_frame */
+    /* Initialize FPU for intr_frame */
     uint8_t tmp[108];
-    asm volatile("fsave (%0)" : : "g"(&tmp));     // tmp save fpu of parent thread
-    asm volatile("fninit");                       // fninit fpu for child thread
-    asm volatile("fsave (%0)" : : "g"(&if_.fpu)); // save newly inited fpu for child thread
-    asm volatile("frstor (%0)" : : "g"(&tmp)); // restore fpu of parent thread to continue routine
+    asm volatile("fsave (%0)" : : "g"(&tmp));     /* Save parent thread's FPU */
+    asm volatile("fninit");                       /* Initialize FPU for child thread */
+    asm volatile("fsave (%0)" : : "g"(&if_.fpu)); /* Save newly initialized FPU for child thread */
+    asm volatile("frstor (%0)" : : "g"(&tmp)); /* Restore parent thread's FPU to continue routine */
   }
 
   /* Handle failure with succesful PCB malloc. Must free the PCB */
   if (!success && pcb_success) {
-    // Avoid race where PCB is freed before t->pcb is set to NULL
-    // If this happens, then an unfortuantely timed timer interrupt
-    // can try to activate the pagedir, but it is now freed memory
+    /* Avoid race where PCB is freed before t->pcb is set to NULL
+       If this happens, then an unfortuantely timed timer interrupt
+       can try to activate the pagedir, but it is now freed memory */
     struct process* pcb_to_free = t->pcb;
     sema_up(&(t->pcb->status->is_dead));
     t->pcb = NULL;
@@ -222,11 +248,10 @@ static void start_process(void* args_) {
   } else {
     t->pcb->status->success = true;
   }
+  sema_up(&t->pcb->status->is_dead);
 
-  sema_up(&(t->pcb->status->is_dead));
-
-  /* NOTE: quirky */
-  asm volatile("fninit"); // ???
+  /* Initialize FPU */
+  asm volatile("fninit");
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
@@ -247,122 +272,135 @@ static void start_process(void* args_) {
 
    This function will be implemented in problem 2-2.  For now, it
    does nothing. */
-int process_wait(pid_t child_pid UNUSED) {
+int process_wait(pid_t pid) {
+  /* Find the child process in child_processes, removing it if found to prevent double waits */
+  struct list* child_processes_ptr = &thread_current()->pcb->child_processes;
+  struct process_status* child_process_status;
 
-  // find the child process in child_processes
-  struct list_elem* iter;
-  struct process_status* temp;
-  struct thread* cur = thread_current();
-  for (iter = list_begin(&(cur->pcb->child_processes));
-       iter != list_end(&(cur->pcb->child_processes)); iter = list_next(iter)) {
-    temp = list_entry(iter, struct process_status, elem);
-    if (temp->pid == child_pid) {
-      list_remove(&(temp->elem));
+  struct list_elem* curr = list_begin(child_processes_ptr);
+  while (curr != list_end(child_processes_ptr)) {
+    child_process_status = list_entry(curr, struct process_status, elem);
+    if (child_process_status->pid == pid) {
+      list_remove(&child_process_status->elem);
       break;
     }
+    curr = list_next(curr);
   }
 
-  // either this process is not a direct child, or we already called wait()
-  if (iter == list_end(&(cur->pcb->child_processes))) {
+  /* If we didn't find the matching child, return -1.
+     The process with the pid passed in is not a direct child, or we already called wait on it. */
+  if (curr == list_end(child_processes_ptr)) {
     return -1;
   }
 
-  // wait for child to finish
-  sema_down(&(temp->is_dead));
+  /* Wait for the child process to finish executing */
+  sema_down(&child_process_status->is_dead);
 
-  //decrement ref_count and return the exit code
-  lock_acquire(&(temp->lock));
-  int exit_code = temp->exit_code;
-  temp->ref_count -= 1;
-  if (temp->ref_count == 0) {
-    free(temp);
+  /* Decrement ref_count and free child status if ref_count reaches 0.
+     Return the child process' exit code. */
+  lock_acquire(&child_process_status->lock);
+  int exit_code = child_process_status->exit_code;
+
+  child_process_status->ref_count -= 1;
+  if (child_process_status->ref_count == 0) {
+    free(child_process_status);
   } else {
-    lock_release(&(temp->lock));
+    lock_release(&child_process_status->lock);
   }
+
   return exit_code;
 }
 
 /* Free the current process's resources. */
 void process_exit(void) {
-  struct thread* cur = thread_current();
+  struct thread* curr_thread = thread_current();
   uint32_t* pd;
 
-  // todo later: what if you decrease ref_count at the end? maybe if nothing works do that
-  lock_acquire(&(cur->pcb->status->lock));
-  cur->pcb->status->ref_count -= 1;
-
-  //if things don't work, put back this lock
-  lock_release(&(cur->pcb->status->lock));
-
-  /* If this thread does not have a PCB, don't worry */
-  if (cur->pcb == NULL) {
+  /* If this thread does not have a PCB, exit immediately */
+  if (curr_thread->pcb == NULL) {
     thread_exit();
     NOT_REACHED();
   }
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
-  pd = cur->pcb->pagedir;
+  pd = curr_thread->pcb->pagedir;
   if (pd != NULL) {
     /* Correct ordering here is crucial.  We must set
-         cur->pcb->pagedir to NULL before switching page directories,
-         so that a timer interrupt can't switch back to the
-         process page directory.  We must activate the base page
-         directory before destroying the process's page
-         directory, or our active page directory will be one
-         that's been freed (and cleared). */
-    cur->pcb->pagedir = NULL;
+       curr_thread->pcb->pagedir to NULL before switching page directories,
+       so that a timer interrupt can't switch back to the
+       process page directory.  We must activate the base page
+       directory before destroying the process's page
+       directory, or our active page directory will be one
+       that's been freed (and cleared). */
+    curr_thread->pcb->pagedir = NULL;
     pagedir_activate(NULL);
     pagedir_destroy(pd);
   }
 
-  struct process_status* status = cur->pcb->status;
+  /* Decrement ref count in shared status.
+    If ref_count reaches 0, free shared status */
+  struct process_status* status = curr_thread->pcb->status;
 
-  //if things don't work, put back this lock
-  lock_acquire(&(status->lock));
+  lock_acquire(&status->lock);
+  status->ref_count -= 1;
   if (status->ref_count <= 0) {
     free(status);
   } else {
-    lock_release(&(status->lock));
+    lock_release(&status->lock);
   }
 
-  struct list_elem* iter;
-  struct process_status* temp;
-  for (iter = list_begin(&(cur->pcb->child_processes));
-       iter != list_end(&(cur->pcb->child_processes));) {
-    temp = list_entry(iter, struct process_status, elem);
+  /* Clean up child process list */
+  struct list* child_processes_ptr = &curr_thread->pcb->child_processes;
+  struct process_status* child_process_status;
 
-    lock_acquire(&(temp->lock));
-    temp->ref_count -= 1;
-    lock_release(&(temp->lock));
+  struct list_elem* curr = list_begin(child_processes_ptr);
+  while (curr != list_end(child_processes_ptr)) {
+    child_process_status = list_entry(curr, struct process_status, elem);
 
-    // update iter first, else removing/freeing temp will mess up iterating through the list
-    iter = list_next(iter);
+    /* Move to next before freeing child_process_status to prevent next from being set to the wrong address */
+    curr = list_next(curr);
 
-    // todo: troll lock_release. might need to revisit
-    lock_acquire(&(temp->lock));
-    if (temp->ref_count <= 0) {
-      list_remove(&(temp->elem));
-      free(temp);
+    /* Decrement reference count in each shared status. Free if ref_count reaches 0. */
+    lock_acquire(&child_process_status->lock);
+    child_process_status->ref_count -= 1;
+    if (child_process_status->ref_count <= 0) {
+      list_remove(&child_process_status->elem);
+      free(child_process_status);
     } else {
-      lock_release(&(temp->lock));
+      lock_release(&child_process_status->lock);
     }
   }
 
-  // the child thread is dead
-  sema_up(&(status->is_dead));
+  /* Clean up file descriptor table */
+  struct list* fd_table_ptr = &curr_thread->pcb->fd_table;
+  struct fd_table_entry* fdt_entry;
 
-  // allow write to current executable
-  file_allow_write(cur->pcb->executable);
-  file_close(cur->pcb->executable);
+  curr = list_begin(fd_table_ptr);
+  while (curr != list_end(fd_table_ptr)) {
+    fdt_entry = list_entry(curr, struct fd_table_entry, elem);
+
+    /* Move to next before freeing child_process_status to prevent next from being set to the wrong address */
+    curr = list_next(curr);
+
+    /* Free the file descriptor and remove it from the file descriptor table */
+    list_remove(&fdt_entry->elem);
+    file_close(fdt_entry->file);
+    free(fdt_entry);
+  }
+
+  /* Mark the child thread as dead */
+  sema_up(&status->is_dead);
+
+  /* Close the now-stopped executable and allow writing to it */
+  file_close(curr_thread->pcb->executable);
 
   /* Free the PCB of this process and kill this thread
      Avoid race where PCB is freed before t->pcb is set to NULL
      If this happens, then an unfortuantely timed timer interrupt
      can try to activate the pagedir, but it is now freed memory */
-  struct process* pcb_to_free = cur->pcb;
-  cur->pcb = NULL;
-  free(pcb_to_free);
+  curr_thread->pcb = NULL;
+  free(curr_thread->pcb);
 
   sema_up(&temporary);
   thread_exit();
