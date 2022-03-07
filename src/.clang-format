@@ -2,9 +2,9 @@ BasedOnStyle: LLVM
 IndentWidth: 2
 TabWidth: 2
 UseTab: Never
-PointerAlignment: Left
+PointerAlignment: Right
 ColumnLimit: 100
-ReflowComments: false
-SortIncludes: false
+ReflowComments: true
+SortIncludes: true
 IndentCaseLabels: true
 BreakBeforeBraces: Attach
