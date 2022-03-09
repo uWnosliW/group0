@@ -62,25 +62,59 @@ void rw_lock_release(struct rw_lock*, bool reader);
 
 // Utility synch objects and ops
 
+/* Closure, for capturing environment */
+typedef struct closure {
+  void* env;
+  void* (*cl)(void*, void*); // env, then args
+} closure_t;
+
+/* Initialize closure with default vals */
+void closure_init(closure_t* cl, void* env, void* (*fn)(void*, void*));
+
 /* Atomic counter, for reference counting */
 typedef struct atomic_int {
   int val;
   lock_t mutex; // enforce exclusive r&w access to val
 } atomic_int_t;
-
+/* Initialize atomic_int to 0 */
 void atomic_int_init(atomic_int_t* ai);
+/* Initialize atomic_int with specified value */
 void atomic_int_init_with(atomic_int_t* ai, int val);
+/* Increment atomically */
 void atomic_int_incr(atomic_int_t* ai);
+/* Decrement atomically */
 void atomic_int_decr(atomic_int_t* ai);
+/* Update integer atomically. `fn` must be a pure function. */
+void atomic_int_call(atomic_int_t* ai, int (*fn)(int));
+/* Update integer atomically, using closure. `cl` must be a pure closure that maps int to int. */
+void atomic_int_call_cl(atomic_int_t* ai, closure_t* cl);
 
-/* Atomic reference counter */
-typedef struct arc {
-  void* ptr;
-  atomic_int_t ref_ct;
-} arc_t;
+#define atomic_int_call_macro(AI, STATEMENTS)                                                      \
+  {                                                                                                \
+    lock_acquire(&(AI)->mutex);                                                                    \
+    {STATEMENTS} lock_release(&(AI)->mutex);                                                       \
+  }
 
-void arc_init(arc_t* a, void* ptr);
-void arc_borrow(arc_t* a);
-void arc_drop(arc_t* a, bool free_ptr, bool free_this);
+/* ARC_OBJECT is pointer to object containing an atomic_int with member name `arc` */
+#define arc_extract_atomic_int(ARC_OBJ) ((atomic_int_t*)(&(ARC_OBJ)->arc))
+#define arc_init(ARC_OBJ) (atomic_int_init(arc_extract_atomic_int(ARC_OBJ)))
+#define arc_init_with(ARC_OBJ, VAL) (atomic_int_init_with(arc_extract_atomic_int(ARC_OBJ), VAL))
+#define arc_incr(ARC_OBJ) (atomic_int_incr(arc_extract_atomic_int(ARC_OBJ)))
+#define arc_decr(ARC_OBJ) (atomic_int_decr(arc_extract_atomic_int(ARC_OBJ)))
+
+#define arc_drop_call_cl(ARC_OBJ, ON_DROP_CL)                                                      \
+  {                                                                                                \
+    atomic_int_t* ai = arc_extract_atomic_int(ARC_OBJ);                                            \
+    lock_acquire(&ai->mutex);                                                                      \
+    if (--ai->val == 0) {                                                                          \
+      closure_t* cl = (ON_DROP_CL);                                                                \
+      if (cl != NULL) {                                                                            \
+        cl->cl(cl->env, NULL);                                                                     \
+      }                                                                                            \
+      free((ARC_OBJ));                                                                             \
+    } else {                                                                                       \
+      lock_release(&ai->mutex);                                                                    \
+    }                                                                                              \
+  }
 
 #endif /* threads/synch.h */
