@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include "filesys/file.h"
 #include "threads/thread.h"
+#include "threads/synch.h"
 
 // At most 8MB can be allocated to the stack
 // These defines will be used in Project 2: Multithreading
@@ -53,8 +54,7 @@ struct process_status {
   struct semaphore is_dead; /* >0 if thread is dead, 0 if alive */
   bool success;             /* True if the program loaded successfully */
   pid_t pid;                /* PID of this process */
-  lock_t lock;              /* Locks ref_count when it's being updated */
-  int ref_count; /* Counter of how many threads currently point to this struct, can be freed once ref_count is 0 */
+  atomic_int_t arc;
 };
 
 /* A file descriptor table entry */

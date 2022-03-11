@@ -359,6 +359,11 @@ void cond_broadcast(struct condition* cond, struct lock* lock) {
     cond_signal(cond, lock);
 }
 
+void closure_init(closure_t* cl, void* env, void* (*fn)(void*, void*)) {
+  cl->env = env;
+  cl->cl = fn;
+}
+
 /* Initialize atomic_int_t obj */
 void atomic_int_init(atomic_int_t* ai) { atomic_int_init_with(ai, 0); }
 
@@ -379,28 +384,14 @@ void atomic_int_decr(atomic_int_t* ai) {
   lock_release(&ai->mutex);
 }
 
-/* Initialize arc */
-void arc_init(arc_t* a, void* ptr) {
-  a->ptr = ptr;
-  atomic_int_init(&a->ref_ct);
+void atomic_int_call(atomic_int_t* ai, int (*fn)(int)) {
+  lock_acquire(&ai->mutex);
+  ai->val = fn(ai->val);
+  lock_release(&ai->mutex);
 }
 
-/* Records a new reference to obj */
-void arc_borrow(arc_t* a) { atomic_int_incr(&a->ref_ct); }
-
-/* Records a reference drop. Deallocate object if last reference. */
-void arc_drop(arc_t* a, bool free_ptr, bool free_this) {
-  atomic_int_decr(&a->ref_ct);
-
-  lock_acquire(&a->ref_ct.mutex);
-  if (a->ref_ct.val == 0) {
-    if (free_ptr) {
-      free(a->ptr);
-    }
-    if (free_this) {
-      free(a);
-      return;
-    }
-  }
-  lock_release(&a->ref_ct.mutex);
+void atomic_int_call_cl(atomic_int_t* ai, closure_t* cl) {
+  lock_acquire(&ai->mutex);
+  ai->val = (int)cl->cl(cl->env, (void*)ai->val);
+  lock_release(&ai->mutex);
 }

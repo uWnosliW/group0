@@ -136,8 +136,7 @@ pid_t process_execute(const char* file_name) {
   child_status->exit_code = 0;
   sema_init(&child_status->is_dead, 0);
   child_status->success = false;
-  lock_init(&child_status->lock);
-  child_status->ref_count = 2;
+  arc_init_with(child_status, 2);
 
   /* Initialize semaphore to wait on the child process */
   sema_init(&temporary, 0);
@@ -300,15 +299,8 @@ int process_wait(pid_t pid) {
 
   /* Decrement ref_count and free child status if ref_count reaches 0.
      Return the child process' exit code. */
-  lock_acquire(&child_process_status->lock);
   int exit_code = child_process_status->exit_code;
-
-  child_process_status->ref_count -= 1;
-  if (child_process_status->ref_count == 0) {
-    free(child_process_status);
-  } else {
-    lock_release(&child_process_status->lock);
-  }
+  arc_drop_call_cl(child_process_status, NULL);
 
   return exit_code;
 }
@@ -343,14 +335,7 @@ void process_exit(void) {
   /* Decrement ref count in shared status.
     If ref_count reaches 0, free shared status */
   struct process_status* status = curr_thread->pcb->status;
-
-  lock_acquire(&status->lock);
-  status->ref_count -= 1;
-  if (status->ref_count <= 0) {
-    free(status);
-  } else {
-    lock_release(&status->lock);
-  }
+  arc_drop_call_cl(status, NULL);
 
   /* Clean up child process list */
   struct list* child_processes_ptr = &curr_thread->pcb->child_processes;
@@ -364,14 +349,12 @@ void process_exit(void) {
     curr = list_next(curr);
 
     /* Decrement reference count in each shared status. Free if ref_count reaches 0. */
-    lock_acquire(&child_process_status->lock);
-    child_process_status->ref_count -= 1;
-    if (child_process_status->ref_count <= 0) {
+    void lst_rm_callback(struct process_status * child_process_status, void* args UNUSED) {
       list_remove(&child_process_status->elem);
-      free(child_process_status);
-    } else {
-      lock_release(&child_process_status->lock);
     }
+    closure_t lst_rm_callback_cl;
+    closure_init(&lst_rm_callback_cl, child_process_status, lst_rm_callback);
+    arc_drop_call_cl(child_process_status, &lst_rm_callback_cl);
   }
 
   /* Clean up file descriptor table */
