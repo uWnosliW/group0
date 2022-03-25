@@ -77,7 +77,8 @@ typedef struct closure {
 /* Initialize closure with default vals */
 void closure_init(closure_t *cl, void *env, void *(*fn)(void *, void *));
 void remove_donation(struct thread *t, struct thread *donor);
-void donate_priority(struct thread *recipient);
+void donate_priority(struct thread *recipient, struct thread *donor);
+
 /* Atomic counter, for reference counting */
 typedef struct atomic_int {
   int val;
