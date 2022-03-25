@@ -224,6 +224,23 @@ bool lock_try_acquire(struct lock *lock) {
   return success;
 }
 
+// removes the donation made by `donor`
+void remove_donation(struct thread *t, struct thread *donor) {
+  struct list_elem *e;
+  struct effective_priority *curr;
+  for (e = list_begin(&t->effective_priorities); e != list_end(&t->effective_priorities);
+       e = list_next(e)) {
+    curr = list_entry(e, struct effective_priority, elem);
+    if (curr->donor->tid == donor->tid) {
+      list_remove(e);
+      return;
+    }
+  }
+
+  // errors, we should not be removing donations by threads which never donated priority
+  ASSERT(1 == 0);
+}
+
 /* Releases LOCK, which must be owned by the current thread.
 
    An interrupt handler cannot acquire a lock, so it does not
@@ -233,8 +250,24 @@ void lock_release(struct lock *lock) {
   ASSERT(lock != NULL);
   ASSERT(lock_held_by_current_thread(lock));
 
+  enum intr_level old_level;
+  old_level = intr_disable();
+
+  struct semaphore *sema = &lock->semaphore;
+  struct thread *highest_prio = list_entry(list_pop_front(&sema->waiters), struct thread, elem);
+  struct thread *curr;
+  struct list_elem *e;
+  for (e = list_begin(&sema->waiters); e != list_end(&sema->waiters); e = list_next(e)) {
+    curr = list_entry(e, struct thread, elem);
+    if (thread_get_effpriority(highest_prio) < thread_get_effpriority(curr)) {
+      highest_prio = curr;
+    }
+  }
+
   lock->holder = NULL;
   sema_up(&lock->semaphore);
+
+  intr_set_level(old_level);
 }
 
 /* Returns true if the current thread holds LOCK, false
