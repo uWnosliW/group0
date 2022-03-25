@@ -256,30 +256,32 @@ void lock_release(struct lock *lock) {
   /* finds highest priority thread. since interrupts are disabled, this will be the same thread
   that gets unblocked by sema_up */
   struct semaphore *sema = &lock->semaphore;
-  struct thread *highest_prio = list_entry(list_pop_front(&sema->waiters), struct thread, elem);
-  struct thread *curr;
-  struct list_elem *e;
-  for (e = list_begin(&sema->waiters); e != list_end(&sema->waiters); e = list_next(e)) {
-    curr = list_entry(e, struct thread, elem);
-    if (thread_get_effpriority(highest_prio) < thread_get_effpriority(curr)) {
-      highest_prio = curr;
+  if (!list_empty(&sema->waiters)) {
+    struct thread *highest_prio = list_entry(list_pop_front(&sema->waiters), struct thread, elem);
+    struct thread *curr;
+    struct list_elem *e;
+    for (e = list_begin(&sema->waiters); e != list_end(&sema->waiters); e = list_next(e)) {
+      curr = list_entry(e, struct thread, elem);
+      if (thread_get_effpriority(highest_prio) < thread_get_effpriority(curr)) {
+        highest_prio = curr;
+      }
     }
-  }
 
+    /* remove all the priority donations from thread_current and give it to the highest priority
+     * thread */
+    for (e = list_begin(&sema->waiters); e != list_end(&sema->waiters); e = list_next(e)) {
+      curr = list_entry(e, struct thread, elem);
+      remove_donation(thread_current(), curr);
+
+      // check that the thread isn't donating priority to itself
+      if (curr->tid != highest_prio->tid) {
+        donate_priority(highest_prio, curr);
+      }
+    }
+    thread_try_preempt(highest_prio);
+  }
   lock->holder = NULL;
   sema_up(&lock->semaphore);
-
-  /* remove all the priority donations from thread_current and give it to the highest priority
-   * thread */
-  for (e = list_begin(&sema->waiters); e != list_end(&sema->waiters); e = list_next(e)) {
-    curr = list_entry(e, struct thread, elem);
-    remove_donation(thread_current(), curr);
-
-    // check that the thread isn't donating priority to itself
-    if (curr->tid != highest_prio->tid) {
-      donate_priority(highest_prio, curr);
-    }
-  }
 
   intr_set_level(old_level);
 }

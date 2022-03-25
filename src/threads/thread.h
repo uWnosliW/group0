@@ -132,6 +132,8 @@ extern enum sched_policy active_sched_policy;
 void thread_init(void);
 void thread_start(void);
 
+bool thread_try_preempt(struct thread *compare);
+
 void thread_tick(void);
 void thread_print_stats(void);
 

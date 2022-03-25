@@ -218,6 +218,9 @@ tid_t thread_create(const char *name, int priority, thread_func *function, void 
   /* Add to run queue. */
   thread_unblock(t);
 
+  // preempt current thread if new thread has higher priority
+  thread_try_preempt(t);
+
   return tid;
 }
 
@@ -613,7 +616,7 @@ static void schedule(void) {
     prev = switch_threads(cur, next);
   thread_switch_tail(prev);
 }
-static bool thread_try_preempt(struct thread *compare) {
+bool thread_try_preempt(struct thread *compare) {
   enum intr_level old_level;
   old_level = intr_disable();
   if (compare == NULL || !is_thread(compare)) {
