@@ -1,8 +1,9 @@
-/* Creates file that is 5 bytes. Seeks past end of file and attempts to write one byte to file. It should write 0 bytes to pass the test.  */
+/* Creates file that is 5 bytes. Seeks past end of file and attempts to write one byte to file. It
+ * should write 0 bytes to pass the test.  */
 
-#include <syscall.h>
 #include "tests/lib.h"
 #include "tests/main.h"
+#include <syscall.h>
 
 void test_main(void) {
   int handle, byte_cnt;

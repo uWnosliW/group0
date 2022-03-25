@@ -1,12 +1,12 @@
 #include "devices/vga.h"
-#include <round.h>
-#include <stdint.h>
-#include <stddef.h>
-#include <string.h>
 #include "devices/speaker.h"
-#include "threads/io.h"
 #include "threads/interrupt.h"
+#include "threads/io.h"
 #include "threads/vaddr.h"
+#include <round.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <string.h>
 
 /* VGA text screen support.  See [FREEVGA] for more information. */
 
@@ -30,7 +30,7 @@ static void clear_row(size_t y);
 static void cls(void);
 static void newline(void);
 static void move_cursor(void);
-static void find_cursor(size_t* x, size_t* y);
+static void find_cursor(size_t *x, size_t *y);
 
 /* Initializes the VGA text display. */
 static void init(void) {
@@ -139,7 +139,7 @@ static void move_cursor(void) {
 }
 
 /* Reads the current hardware cursor position into (*X,*Y). */
-static void find_cursor(size_t* x, size_t* y) {
+static void find_cursor(size_t *x, size_t *y) {
   /* See [FREEVGA] under "Manipulating the Text-mode Cursor". */
   uint16_t cp;
 

@@ -24,17 +24,17 @@
 
    Written by Godmar Back <gback@cs.vt.edu> */
 
-#include <stdio.h>
 #include "tests/threads/tests.h"
 #include "threads/init.h"
 #include "threads/synch.h"
 #include "threads/thread.h"
+#include <stdio.h>
 
 #define NESTING_DEPTH 8
 
 struct lock_pair {
-  struct lock* second;
-  struct lock* first;
+  struct lock *second;
+  struct lock *first;
 };
 
 static thread_func donor_thread_func;
@@ -77,8 +77,8 @@ void test_priority_donate_chain(void) {
   msg("%s finishing with priority %d.", thread_name(), thread_get_priority());
 }
 
-static void donor_thread_func(void* locks_) {
-  struct lock_pair* locks = locks_;
+static void donor_thread_func(void *locks_) {
+  struct lock_pair *locks = locks_;
 
   if (locks->first)
     lock_acquire(locks->first);
@@ -96,6 +96,6 @@ static void donor_thread_func(void* locks_) {
   msg("%s finishing with priority %d.", thread_name(), thread_get_priority());
 }
 
-static void interloper_thread_func(void* arg_ UNUSED) { msg("%s finished.", thread_name()); }
+static void interloper_thread_func(void *arg_ UNUSED) { msg("%s finished.", thread_name()); }
 
 // vim: sw=2

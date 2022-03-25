@@ -15,15 +15,15 @@
 
    (The above are computed via simulation in mlfqs.pm.) */
 
-#include <stdio.h>
-#include <inttypes.h>
+#include "devices/timer.h"
 #include "tests/threads/tests.h"
 #include "threads/init.h"
 #include "threads/malloc.h"
 #include "threads/palloc.h"
 #include "threads/synch.h"
 #include "threads/thread.h"
-#include "devices/timer.h"
+#include <inttypes.h>
+#include <stdio.h>
 
 static void test_mlfqs_fair(int thread_cnt, int nice_min, int nice_step);
 
@@ -43,7 +43,7 @@ struct thread_info {
   int nice;
 };
 
-static void load_thread(void* aux);
+static void load_thread(void *aux);
 
 static void test_mlfqs_fair(int thread_cnt, int nice_min, int nice_step) {
   struct thread_info info[MAX_THREAD_CNT];
@@ -63,7 +63,7 @@ static void test_mlfqs_fair(int thread_cnt, int nice_min, int nice_step) {
   msg("Starting %d threads...", thread_cnt);
   nice = nice_min;
   for (i = 0; i < thread_cnt; i++) {
-    struct thread_info* ti = &info[i];
+    struct thread_info *ti = &info[i];
     char name[16];
 
     ti->start_time = start_time;
@@ -84,8 +84,8 @@ static void test_mlfqs_fair(int thread_cnt, int nice_min, int nice_step) {
     msg("Thread %d received %d ticks.", i, info[i].tick_count);
 }
 
-static void load_thread(void* ti_) {
-  struct thread_info* ti = ti_;
+static void load_thread(void *ti_) {
+  struct thread_info *ti = ti_;
   int64_t sleep_time = 5 * TIMER_FREQ;
   int64_t spin_time = sleep_time + 30 * TIMER_FREQ;
   int64_t last_time = 0;

@@ -1,8 +1,8 @@
 /* Runs 4 child-linear processes at once. */
 
-#include <syscall.h>
 #include "tests/lib.h"
 #include "tests/main.h"
+#include <syscall.h>
 
 #define CHILD_CNT 4
 

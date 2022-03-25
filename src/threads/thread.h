@@ -15,12 +15,6 @@ enum thread_status {
   THREAD_DYING    /* About to be destroyed. */
 };
 
-// stores priority donations
-struct effective_priority {
-  struct list_elem elem; // List element
-  struct thread *donor;  // The thread which donated this specific priority
-};
-
 /* Thread identifier type.
    You can redefine this to whatever type you like. */
 typedef int tid_t;
@@ -137,9 +131,6 @@ extern enum sched_policy active_sched_policy;
 
 void thread_init(void);
 void thread_start(void);
-
-// called whenever a new thread is created, lock is released, or sema_down is called
-static bool thread_try_preempt(struct thread *compare);
 
 void thread_tick(void);
 void thread_print_stats(void);

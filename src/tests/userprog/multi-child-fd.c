@@ -3,11 +3,11 @@
    so this must fail.)  The parent process then attempts to use
    the file handle, which must succeed. */
 
-#include <stdio.h>
-#include <syscall.h>
-#include "tests/userprog/sample.inc"
 #include "tests/lib.h"
 #include "tests/main.h"
+#include "tests/userprog/sample.inc"
+#include <stdio.h>
+#include <syscall.h>
 
 void test_main(void) {
   char child_cmd[128];

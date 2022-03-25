@@ -23,6 +23,11 @@ struct lock {
   struct list_elem elem;      // So threads can keep track of locks held
 };
 typedef struct lock lock_t;
+// stores priority donations
+struct effective_priority {
+  struct list_elem elem; // List element
+  struct thread *donor;  // The thread which donated this specific priority
+};
 
 void lock_init(struct lock *);
 void lock_acquire(struct lock *);
@@ -72,6 +77,7 @@ typedef struct closure {
 /* Initialize closure with default vals */
 void closure_init(closure_t *cl, void *env, void *(*fn)(void *, void *));
 
+void donate_priority(struct thread *recipient);
 /* Atomic counter, for reference counting */
 typedef struct atomic_int {
   int val;

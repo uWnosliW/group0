@@ -2,15 +2,15 @@
 
    Creates a tar archive. */
 
-#include <ustar.h>
-#include <syscall.h>
 #include <stdio.h>
 #include <string.h>
+#include <syscall.h>
+#include <ustar.h>
 
 static void usage(void);
-static bool make_tar_archive(const char* archive_name, char* files[], size_t file_cnt);
+static bool make_tar_archive(const char *archive_name, char *files[], size_t file_cnt);
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
   if (argc < 3)
     usage();
 
@@ -28,18 +28,18 @@ static void usage(void) {
 }
 
 static bool archive_file(char file_name[], size_t file_name_size, int archive_fd,
-                         bool* write_error);
+                         bool *write_error);
 
-static bool archive_ordinary_file(const char* file_name, int file_fd, int archive_fd,
-                                  bool* write_error);
+static bool archive_ordinary_file(const char *file_name, int file_fd, int archive_fd,
+                                  bool *write_error);
 static bool archive_directory(char file_name[], size_t file_name_size, int file_fd, int archive_fd,
-                              bool* write_error);
-static bool write_header(const char* file_name, enum ustar_type, int size, int archive_fd,
-                         bool* write_error);
+                              bool *write_error);
+static bool write_header(const char *file_name, enum ustar_type, int size, int archive_fd,
+                         bool *write_error);
 
-static bool do_write(int fd, const char* buffer, int size, bool* write_error);
+static bool do_write(int fd, const char *buffer, int size, bool *write_error);
 
-static bool make_tar_archive(const char* archive_name, char* files[], size_t file_cnt) {
+static bool make_tar_archive(const char *archive_name, char *files[], size_t file_cnt) {
   static const char zeros[512];
   int archive_fd;
   bool success = true;
@@ -74,7 +74,7 @@ static bool make_tar_archive(const char* archive_name, char* files[], size_t fil
 }
 
 static bool archive_file(char file_name[], size_t file_name_size, int archive_fd,
-                         bool* write_error) {
+                         bool *write_error) {
   int file_fd = open(file_name);
   if (file_fd >= 0) {
     bool success;
@@ -98,8 +98,8 @@ static bool archive_file(char file_name[], size_t file_name_size, int archive_fd
   }
 }
 
-static bool archive_ordinary_file(const char* file_name, int file_fd, int archive_fd,
-                                  bool* write_error) {
+static bool archive_ordinary_file(const char *file_name, int file_fd, int archive_fd,
+                                  bool *write_error) {
   bool read_error = false;
   bool success = true;
   int file_size = filesize(file_fd);
@@ -130,7 +130,7 @@ static bool archive_ordinary_file(const char* file_name, int file_fd, int archiv
 }
 
 static bool archive_directory(char file_name[], size_t file_name_size, int file_fd, int archive_fd,
-                              bool* write_error) {
+                              bool *write_error) {
   size_t dir_len;
   bool success = true;
 
@@ -152,14 +152,14 @@ static bool archive_directory(char file_name[], size_t file_name_size, int file_
   return success;
 }
 
-static bool write_header(const char* file_name, enum ustar_type type, int size, int archive_fd,
-                         bool* write_error) {
+static bool write_header(const char *file_name, enum ustar_type type, int size, int archive_fd,
+                         bool *write_error) {
   static char header[512];
   return (ustar_make_header(file_name, type, size, header) &&
           do_write(archive_fd, header, 512, write_error));
 }
 
-static bool do_write(int fd, const char* buffer, int size, bool* write_error) {
+static bool do_write(int fd, const char *buffer, int size, bool *write_error) {
   if (write(fd, buffer, size) == size)
     return true;
   else {

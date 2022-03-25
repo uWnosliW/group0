@@ -1,8 +1,9 @@
-/* Creates file, seeks 10 bytes, writes 10 bytes, and then checks if tell returns the right index which is 20. */
+/* Creates file, seeks 10 bytes, writes 10 bytes, and then checks if tell returns the right index
+ * which is 20. */
 
-#include <syscall.h>
 #include "tests/lib.h"
 #include "tests/main.h"
+#include <syscall.h>
 
 void test_main(void) {
   int handle, byte_cnt;
