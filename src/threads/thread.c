@@ -334,11 +334,20 @@ void thread_foreach(thread_action_func *func, void *aux) {
   }
 }
 
-/* Sets the current thread's priority to NEW_PRIORITY. */
+/* Sets the current thread's base priority to NEW_PRIORITY. */
 void thread_set_priority(int new_priority) { thread_current()->priority = new_priority; }
 
-/* Returns the current thread's priority. */
-int thread_get_priority(void) { return thread_current()->priority; }
+/* Returns the effective priority of a given thread */
+int thread_effective_priority(struct thread *t) {
+  enum intr_level old_level = intr_disable();
+  int effective_priority = thread_current()->priority;
+  intr_set_level(old_level);
+
+  return effective_priority;
+}
+
+/* Returns the current thread's effective priority. */
+int thread_get_priority(void) { thread_effective_priority(thread_current()); }
 
 /* Sets the current thread's nice value to NICE. */
 void thread_set_nice(int nice UNUSED) { /* Not yet implemented. */
@@ -470,7 +479,7 @@ bool prio_less(const struct list_elem *a, const struct list_elem *b, void *aux U
   struct thread *thread_a = list_entry(a, struct thread, elem);
   struct thread *thread_b = list_entry(b, struct thread, elem);
 
-  return thread_a->priority < thread_b->priority;
+  return thread_a->priority < thread_b->priority; // TODO: change to effective priority
 }
 
 /* Strict priority scheduler */
@@ -483,7 +492,10 @@ static struct thread *thread_schedule_prio(void) {
   struct list_elem *max_prio_elem = list_max(&fifo_ready_list, prio_less, NULL);
   list_remove(max_prio_elem);
 
-  return list_entry(max_prio_elem, struct thread, elem);
+  struct thread *t = list_entry(max_prio_elem, struct thread, elem);
+  // TODO: check if max_prio_elem should be freed here
+
+  return t;
 }
 
 /* Fair priority scheduler */
