@@ -208,7 +208,8 @@ tid_t thread_create(const char *name, int priority, thread_func *function, void 
   sf = alloc_frame(t, sizeof *sf);
   sf->eip = switch_entry;
   sf->ebp = 0;
-  /* init fpu for stf */
+
+  /* Initialize FPU */
   uint8_t tmp[108];
   asm volatile("fsave (%0)" : : "g"(&tmp));     // tmp save fpu of parent thread
   asm volatile("fninit");                       // fninit fpu of child thread
