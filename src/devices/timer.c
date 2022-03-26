@@ -109,10 +109,10 @@ void timer_sleep(int64_t ticks) {
 
   struct thread *t = thread_current();
 
-  struct sleeping_thread *new_sleeping_thread = malloc(sizeof(struct sleeping_thread));
-  new_sleeping_thread->thread_ptr = t;
-  new_sleeping_thread->wakeup_time = start + ticks;
-  list_insert_ordered(&sleeping_thread_list, &new_sleeping_thread->elem, wakeup_less, NULL);
+  struct sleeping_thread new_sleeping_thread; // = malloc(sizeof(struct sleeping_thread));
+  new_sleeping_thread.thread_ptr = t;
+  new_sleeping_thread.wakeup_time = start + ticks;
+  list_insert_ordered(&sleeping_thread_list, &new_sleeping_thread.elem, wakeup_less, NULL);
 
   /* Wait to be unblocked */
   thread_block();
