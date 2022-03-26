@@ -2,8 +2,8 @@
 
 #include "tests/lib.h"
 #include "tests/main.h"
-#include <syscall.h>
 #include <pthread.h>
+#include <syscall.h>
 
 // Joiner thread data
 struct joiner_thread_data {
@@ -19,20 +19,20 @@ struct self_joiner_thread_data {
 // Global variables
 sema_t thread_sema;
 
-void thread_function(void* arg_);
-void joiner_function(void* arg_);
-void self_joiner_function(void* arg_);
+void thread_function(void *arg_);
+void joiner_function(void *arg_);
+void self_joiner_function(void *arg_);
 
 /* Prints that it started then downs a semaphore */
-void thread_function(void* arg_) {
-  sema_t* sema = (sema_t*)arg_;
+void thread_function(void *arg_) {
+  sema_t *sema = (sema_t *)arg_;
   sema_down(sema);
   msg("Thread finished");
 }
 
 /* Tries to join on a thread */
-void joiner_function(void* arg_) {
-  struct joiner_thread_data* jtd = (struct joiner_thread_data*)arg_;
+void joiner_function(void *arg_) {
+  struct joiner_thread_data *jtd = (struct joiner_thread_data *)arg_;
   if (jtd->should_succeed)
     pthread_check_join(jtd->tid);
   else if (pthread_join(jtd->tid))
@@ -41,8 +41,8 @@ void joiner_function(void* arg_) {
 }
 
 /* Tries to join on itself */
-void self_joiner_function(void* arg_) {
-  struct self_joiner_thread_data* sjtd = (struct self_joiner_thread_data*)arg_;
+void self_joiner_function(void *arg_) {
+  struct self_joiner_thread_data *sjtd = (struct self_joiner_thread_data *)arg_;
   sema_down(&sjtd->populate_sjtd); // Wait until tells us our TID
   if (pthread_join(sjtd->self_tid))
     fail("Should have failed.");

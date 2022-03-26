@@ -1,16 +1,16 @@
 /* Verifies that mmap'd regions are only written back on munmap
    if the data was actually modified in memory. */
 
-#include <string.h>
-#include <syscall.h>
-#include "tests/vm/sample.inc"
 #include "tests/lib.h"
 #include "tests/main.h"
+#include "tests/vm/sample.inc"
+#include <string.h>
+#include <syscall.h>
 
 void test_main(void) {
   static const char overwrite[] = "Now is the time for all good...";
   static char buffer[sizeof sample - 1];
-  char* actual = (char*)0x54321000;
+  char *actual = (char *)0x54321000;
   int handle;
   mapid_t map;
 

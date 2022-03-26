@@ -241,7 +241,7 @@ static void thread_enqueue(struct thread *t) {
   ASSERT(intr_get_level() == INTR_OFF);
   ASSERT(is_thread(t));
 
-  if (active_sched_policy == SCHED_FIFO)
+  if (active_sched_policy == SCHED_FIFO || active_sched_policy == SCHED_PRIO)
     list_push_back(&fifo_ready_list, &t->elem);
   else
     PANIC("Unimplemented scheduling policy value: %d", active_sched_policy);
@@ -434,9 +434,12 @@ static void init_thread(struct thread *t, const char *name, int priority) {
   t->status = THREAD_BLOCKED;
   strlcpy(t->name, name, sizeof t->name);
   t->stack = (uint8_t *)t + PGSIZE;
-  t->priority = priority;
   t->pcb = NULL;
   t->magic = THREAD_MAGIC;
+
+  t->priority = priority;
+  t->lock_requested = NULL;
+  list_init(&t->locks_held);
 
   old_level = intr_disable();
   list_push_back(&all_list, &t->allelem);
@@ -462,9 +465,25 @@ static struct thread *thread_schedule_fifo(void) {
     return idle_thread;
 }
 
+/* Helper less function for finding maximum priority threads */
+bool prio_less(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED) {
+  struct thread *thread_a = list_entry(a, struct thread, elem);
+  struct thread *thread_b = list_entry(b, struct thread, elem);
+
+  return thread_a->priority < thread_b->priority;
+}
+
 /* Strict priority scheduler */
 static struct thread *thread_schedule_prio(void) {
-  PANIC("Unimplemented scheduler policy: \"-sched=prio\"");
+  /* Return the idle thread if we have no threads running */
+  if (list_empty(&fifo_ready_list))
+    return idle_thread;
+
+  /* Otherwise remove and return the highest priority thread from the list */
+  struct list_elem *max_prio_elem = list_max(&fifo_ready_list, prio_less, NULL);
+  list_remove(max_prio_elem);
+
+  return list_entry(max_prio_elem, struct thread, elem);
 }
 
 /* Fair priority scheduler */

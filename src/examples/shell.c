@@ -4,7 +4,7 @@
 #include <syscall.h>
 
 static void read_line(char line[], size_t);
-static bool backspace(char** pos, char line[]);
+static bool backspace(char **pos, char line[]);
 
 int main(void) {
   printf("Shell starting...\n");
@@ -41,7 +41,7 @@ int main(void) {
    expected by Unix users.  On return, LINE will always be
    null-terminated and will not end in a new-line character. */
 static void read_line(char line[], size_t size) {
-  char* pos = line;
+  char *pos = line;
   for (;;) {
     char c;
     read(STDIN_FILENO, &c, 1);
@@ -75,7 +75,7 @@ static void read_line(char line[], size_t size) {
 /* If *POS is past the beginning of LINE, backs up one character
    position.  Returns true if successful, false if nothing was
    done. */
-static bool backspace(char** pos, char line[]) {
+static bool backspace(char **pos, char line[]) {
   if (*pos > line) {
     /* Back up cursor, overwrite character, back up
          again. */

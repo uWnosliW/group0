@@ -167,6 +167,7 @@ static void timer_interrupt(struct intr_frame *args UNUSED) {
   ticks++;
   thread_tick();
 
+  /* Iterate through sleeping threads list, waking threads up if we're past their wakeup time */
   while (!list_empty(&sleeping_thread_list)) {
     struct list_elem *front_elem = list_begin(&sleeping_thread_list);
     struct sleeping_thread *front_sleeping_thread =
@@ -181,6 +182,7 @@ static void timer_interrupt(struct intr_frame *args UNUSED) {
       thread_unblock(t);
       list_pop_front(&sleeping_thread_list);
     } else {
+      /* No need to continue iterating since sleeping threads are sorted based on wakeup time */
       break;
     }
   }

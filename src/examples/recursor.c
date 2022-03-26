@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <syscall.h>
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
   char buffer[128];
   pid_t pid;
   int retval = 0;

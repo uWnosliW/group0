@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <syscall.h>
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
   int fd[2];
 
   if (argc != 3) {

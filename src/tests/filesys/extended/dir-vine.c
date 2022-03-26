@@ -7,11 +7,11 @@
    to 256 without much trouble).  Second, a full disk has no room
    for the tar archive. */
 
-#include <string.h>
-#include <stdio.h>
-#include <syscall.h>
 #include "tests/lib.h"
 #include "tests/main.h"
+#include <stdio.h>
+#include <string.h>
+#include <syscall.h>
 
 void test_main(void) {
   int i;

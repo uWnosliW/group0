@@ -7,13 +7,13 @@
    any action, or the kernel should terminate the process with a
    -1 exit code. */
 
+#include "tests/lib.h"
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <syscall.h>
-#include "tests/lib.h"
 
-int main(int argc UNUSED, char* argv[]) {
+int main(int argc UNUSED, char *argv[]) {
   test_name = "child-close";
 
   msg("begin");

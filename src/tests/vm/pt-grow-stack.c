@@ -1,11 +1,11 @@
 /* Demonstrate that the stack can grow.
    This must succeed. */
 
-#include <string.h>
 #include "tests/arc4.h"
 #include "tests/cksum.h"
 #include "tests/lib.h"
 #include "tests/main.h"
+#include <string.h>
 
 void test_main(void) {
   char stack_obj[4096];

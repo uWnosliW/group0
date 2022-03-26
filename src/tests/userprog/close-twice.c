@@ -2,9 +2,9 @@
    close must either fail silently or terminate with exit code
    -1. */
 
-#include <syscall.h>
 #include "tests/lib.h"
 #include "tests/main.h"
+#include <syscall.h>
 
 void test_main(void) {
   int handle;

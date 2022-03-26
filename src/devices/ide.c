@@ -1,14 +1,14 @@
 #include "devices/ide.h"
+#include "devices/block.h"
+#include "devices/partition.h"
+#include "devices/timer.h"
+#include "threads/interrupt.h"
+#include "threads/io.h"
+#include "threads/synch.h"
 #include <ctype.h>
 #include <debug.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include "devices/block.h"
-#include "devices/partition.h"
-#include "devices/timer.h"
-#include "threads/io.h"
-#include "threads/interrupt.h"
-#include "threads/synch.h"
 
 /* The code in this file is an interface to an ATA (IDE)
    controller.  It attempts to comply to [ATA-3]. */
@@ -53,7 +53,7 @@
 /* An ATA device. */
 struct ata_disk {
   char name[8];            /* Name, e.g. "hda". */
-  struct channel* channel; /* Channel that disk is attached to. */
+  struct channel *channel; /* Channel that disk is attached to. */
   int dev_no;              /* Device 0 or 1 for master or slave. */
   bool is_ata;             /* Is device an ATA disk? */
 };
@@ -79,28 +79,28 @@ static struct channel channels[CHANNEL_CNT];
 
 static struct block_operations ide_operations;
 
-static void reset_channel(struct channel*);
-static bool check_device_type(struct ata_disk*);
-static void identify_ata_device(struct ata_disk*);
+static void reset_channel(struct channel *);
+static bool check_device_type(struct ata_disk *);
+static void identify_ata_device(struct ata_disk *);
 
-static void select_sector(struct ata_disk*, block_sector_t);
-static void issue_pio_command(struct channel*, uint8_t command);
-static void input_sector(struct channel*, void*);
-static void output_sector(struct channel*, const void*);
+static void select_sector(struct ata_disk *, block_sector_t);
+static void issue_pio_command(struct channel *, uint8_t command);
+static void input_sector(struct channel *, void *);
+static void output_sector(struct channel *, const void *);
 
-static void wait_until_idle(const struct ata_disk*);
-static bool wait_while_busy(const struct ata_disk*);
-static void select_device(const struct ata_disk*);
-static void select_device_wait(const struct ata_disk*);
+static void wait_until_idle(const struct ata_disk *);
+static bool wait_while_busy(const struct ata_disk *);
+static void select_device(const struct ata_disk *);
+static void select_device_wait(const struct ata_disk *);
 
-static void interrupt_handler(struct intr_frame*);
+static void interrupt_handler(struct intr_frame *);
 
 /* Initialize the disk subsystem and detect disks. */
 void ide_init(void) {
   size_t chan_no;
 
   for (chan_no = 0; chan_no < CHANNEL_CNT; chan_no++) {
-    struct channel* c = &channels[chan_no];
+    struct channel *c = &channels[chan_no];
     int dev_no;
 
     /* Initialize channel. */
@@ -123,7 +123,7 @@ void ide_init(void) {
 
     /* Initialize devices. */
     for (dev_no = 0; dev_no < 2; dev_no++) {
-      struct ata_disk* d = &c->devices[dev_no];
+      struct ata_disk *d = &c->devices[dev_no];
       snprintf(d->name, sizeof d->name, "hd%c", 'a' + chan_no * 2 + dev_no);
       d->channel = c;
       d->dev_no = dev_no;
@@ -149,18 +149,18 @@ void ide_init(void) {
 
 /* Disk detection and identification. */
 
-static char* descramble_ata_string(char*, int size);
+static char *descramble_ata_string(char *, int size);
 
 /* Resets an ATA channel and waits for any devices present on it
    to finish the reset. */
-static void reset_channel(struct channel* c) {
+static void reset_channel(struct channel *c) {
   bool present[2];
   int dev_no;
 
   /* The ATA reset sequence depends on which devices are present,
      so we start by detecting device presence. */
   for (dev_no = 0; dev_no < 2; dev_no++) {
-    struct ata_disk* d = &c->devices[dev_no];
+    struct ata_disk *d = &c->devices[dev_no];
 
     select_device(d);
 
@@ -211,8 +211,8 @@ static void reset_channel(struct channel* c) {
    if it's possible that a slave (device 1) exists on this
    channel.  If D is device 1 (slave), the return value is not
    meaningful. */
-static bool check_device_type(struct ata_disk* d) {
-  struct channel* c = d->channel;
+static bool check_device_type(struct ata_disk *d) {
+  struct channel *c = d->channel;
   uint8_t error, lbam, lbah, status;
 
   select_device(d);
@@ -235,13 +235,13 @@ static bool check_device_type(struct ata_disk* d) {
 /* Sends an IDENTIFY DEVICE command to disk D and reads the
    response.  Registers the disk with the block device
    layer. */
-static void identify_ata_device(struct ata_disk* d) {
-  struct channel* c = d->channel;
+static void identify_ata_device(struct ata_disk *d) {
+  struct channel *c = d->channel;
   char id[BLOCK_SECTOR_SIZE];
   block_sector_t capacity;
   char *model, *serial;
   char extra_info[128];
-  struct block* block;
+  struct block *block;
 
   ASSERT(d->is_ata);
 
@@ -259,7 +259,7 @@ static void identify_ata_device(struct ata_disk* d) {
 
   /* Calculate capacity.
      Read model name and serial number. */
-  capacity = *(uint32_t*)&id[60 * 2];
+  capacity = *(uint32_t *)&id[60 * 2];
   model = descramble_ata_string(&id[10 * 2], 20);
   serial = descramble_ata_string(&id[27 * 2], 40);
   snprintf(extra_info, sizeof extra_info, "model \"%s\", serial \"%s\"", model, serial);
@@ -285,7 +285,7 @@ static void identify_ata_device(struct ata_disk* d) {
 /* Translates STRING, which consists of SIZE bytes in a funky
    format, into a null-terminated string in-place.  Drops
    trailing whitespace and null bytes.  Returns STRING.  */
-static char* descramble_ata_string(char* string, int size) {
+static char *descramble_ata_string(char *string, int size) {
   int i;
 
   /* Swap all pairs of bytes. */
@@ -310,9 +310,9 @@ static char* descramble_ata_string(char* string, int size) {
    room for BLOCK_SECTOR_SIZE bytes.
    Internally synchronizes accesses to disks, so external
    per-disk locking is unneeded. */
-static void ide_read(void* d_, block_sector_t sec_no, void* buffer) {
-  struct ata_disk* d = d_;
-  struct channel* c = d->channel;
+static void ide_read(void *d_, block_sector_t sec_no, void *buffer) {
+  struct ata_disk *d = d_;
+  struct channel *c = d->channel;
   lock_acquire(&c->lock);
   select_sector(d, sec_no);
   issue_pio_command(c, CMD_READ_SECTOR_RETRY);
@@ -328,9 +328,9 @@ static void ide_read(void* d_, block_sector_t sec_no, void* buffer) {
    acknowledged receiving the data.
    Internally synchronizes accesses to disks, so external
    per-disk locking is unneeded. */
-static void ide_write(void* d_, block_sector_t sec_no, const void* buffer) {
-  struct ata_disk* d = d_;
-  struct channel* c = d->channel;
+static void ide_write(void *d_, block_sector_t sec_no, const void *buffer) {
+  struct ata_disk *d = d_;
+  struct channel *c = d->channel;
   lock_acquire(&c->lock);
   select_sector(d, sec_no);
   issue_pio_command(c, CMD_WRITE_SECTOR_RETRY);
@@ -346,8 +346,8 @@ static struct block_operations ide_operations = {ide_read, ide_write};
 /* Selects device D, waiting for it to become ready, and then
    writes SEC_NO to the disk's sector selection registers.  (We
    use LBA mode.) */
-static void select_sector(struct ata_disk* d, block_sector_t sec_no) {
-  struct channel* c = d->channel;
+static void select_sector(struct ata_disk *d, block_sector_t sec_no) {
+  struct channel *c = d->channel;
 
   ASSERT(sec_no < (1UL << 28));
 
@@ -361,7 +361,7 @@ static void select_sector(struct ata_disk* d, block_sector_t sec_no) {
 
 /* Writes COMMAND to channel C and prepares for receiving a
    completion interrupt. */
-static void issue_pio_command(struct channel* c, uint8_t command) {
+static void issue_pio_command(struct channel *c, uint8_t command) {
   /* Interrupts must be enabled or our semaphore will never be
      up'd by the completion handler. */
   ASSERT(intr_get_level() == INTR_ON);
@@ -372,13 +372,13 @@ static void issue_pio_command(struct channel* c, uint8_t command) {
 
 /* Reads a sector from channel C's data register in PIO mode into
    SECTOR, which must have room for BLOCK_SECTOR_SIZE bytes. */
-static void input_sector(struct channel* c, void* sector) {
+static void input_sector(struct channel *c, void *sector) {
   insw(reg_data(c), sector, BLOCK_SECTOR_SIZE / 2);
 }
 
 /* Writes SECTOR to channel C's data register in PIO mode.
    SECTOR must contain BLOCK_SECTOR_SIZE bytes. */
-static void output_sector(struct channel* c, const void* sector) {
+static void output_sector(struct channel *c, const void *sector) {
   outsw(reg_data(c), sector, BLOCK_SECTOR_SIZE / 2);
 }
 
@@ -389,7 +389,7 @@ static void output_sector(struct channel* c, const void* sector) {
 
    As a side effect, reading the status register clears any
    pending interrupt. */
-static void wait_until_idle(const struct ata_disk* d) {
+static void wait_until_idle(const struct ata_disk *d) {
   int i;
 
   for (i = 0; i < 1000; i++) {
@@ -405,8 +405,8 @@ static void wait_until_idle(const struct ata_disk* d) {
    and then return the status of the DRQ bit.
    The ATA standards say that a disk may take as long as that to
    complete its reset. */
-static bool wait_while_busy(const struct ata_disk* d) {
-  struct channel* c = d->channel;
+static bool wait_while_busy(const struct ata_disk *d) {
+  struct channel *c = d->channel;
   int i;
 
   for (i = 0; i < 3000; i++) {
@@ -425,8 +425,8 @@ static bool wait_while_busy(const struct ata_disk* d) {
 }
 
 /* Program D's channel so that D is now the selected disk. */
-static void select_device(const struct ata_disk* d) {
-  struct channel* c = d->channel;
+static void select_device(const struct ata_disk *d) {
+  struct channel *c = d->channel;
   uint8_t dev = DEV_MBS;
   if (d->dev_no == 1)
     dev |= DEV_DEV;
@@ -437,15 +437,15 @@ static void select_device(const struct ata_disk* d) {
 
 /* Select disk D in its channel, as select_device(), but wait for
    the channel to become idle before and after. */
-static void select_device_wait(const struct ata_disk* d) {
+static void select_device_wait(const struct ata_disk *d) {
   wait_until_idle(d);
   select_device(d);
   wait_until_idle(d);
 }
 
 /* ATA interrupt handler. */
-static void interrupt_handler(struct intr_frame* f) {
-  struct channel* c;
+static void interrupt_handler(struct intr_frame *f) {
+  struct channel *c;
 
   for (c = channels; c < channels + CHANNEL_CNT; c++)
     if (f->vec_no == c->irq) {

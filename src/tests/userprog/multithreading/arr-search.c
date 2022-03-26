@@ -22,13 +22,13 @@ struct thread_data {
   int elem_idx;
 };
 
-void thread_function(void* arg_);
+void thread_function(void *arg_);
 void search_and_check(int elem);
 
 /* Searches for elem in range [start_idx, end_idx) by
    spawning helper threads */
-void thread_function(void* arg_) {
-  struct thread_data* thread_data = (struct thread_data*)arg_;
+void thread_function(void *arg_) {
+  struct thread_data *thread_data = (struct thread_data *)arg_;
 
   // Base case, we only have one element to search
   if (thread_data->end_idx - thread_data->start_idx == 1) {

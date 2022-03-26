@@ -11,14 +11,14 @@
 lock_t thread_hang, count_lock;
 sema_t main_wait;
 int created_threads;
-char* first = "first";
-char* second = "second";
+char *first = "first";
+char *second = "second";
 
-void thread_function(void* arg_);
+void thread_function(void *arg_);
 
 /* Hangs until main releases the global lock */
-void thread_function(void* arg_) {
-  char* str = (char*)arg_;
+void thread_function(void *arg_) {
+  char *str = (char *)arg_;
 
   // Safely wake up main once all the threads are created
   lock_acquire(&count_lock);

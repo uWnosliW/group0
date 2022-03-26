@@ -1,14 +1,14 @@
 /* Maps a file into memory and runs child-inherit to verify that
    mappings are not inherited. */
 
-#include <string.h>
-#include <syscall.h>
-#include "tests/vm/sample.inc"
 #include "tests/lib.h"
 #include "tests/main.h"
+#include "tests/vm/sample.inc"
+#include <string.h>
+#include <syscall.h>
 
 void test_main(void) {
-  char* actual = (char*)0x54321000;
+  char *actual = (char *)0x54321000;
   int handle;
   pid_t child;
 

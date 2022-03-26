@@ -88,7 +88,9 @@ struct thread {
   char name[16];             /* Name (for debugging purposes). */
   uint8_t *stack;            /* Saved stack pointer. */
 
-  int priority; /* Priority. */
+  int priority;                /* Base priority. */
+  struct lock *lock_requested; /* Lock requested, used in priority donation */
+  struct list locks_held;      /* List of locks held, used in priority donation */
 
   struct list_elem allelem; /* List element for all threads list. */
 

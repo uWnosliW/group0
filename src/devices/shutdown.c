@@ -1,14 +1,14 @@
 #include "devices/shutdown.h"
-#include <console.h>
-#include <stdio.h>
 #include "devices/kbd.h"
 #include "devices/serial.h"
 #include "devices/timer.h"
 #include "threads/io.h"
 #include "threads/thread.h"
+#include <console.h>
+#include <stdio.h>
 #ifdef USERPROG
-#include "userprog/exception.h"
 #include "devices/shutdown.h"
+#include "userprog/exception.h"
 #endif
 #ifdef FILESYS
 #include "devices/block.h"
@@ -51,12 +51,12 @@ void shutdown_reboot(void) {
   printf("Rebooting...\n");
 
   /* See [kbd] for details on how to program the keyboard
-     * controller. */
+   * controller. */
   for (;;) {
     int i;
 
     /* Poll keyboard controller's status byte until
-       * 'input buffer empty' is reported. */
+     * 'input buffer empty' is reported. */
     for (i = 0; i < 0x10000; i++) {
       if ((inb(CONTROL_REG) & 0x02) == 0)
         break;
@@ -66,7 +66,7 @@ void shutdown_reboot(void) {
     timer_udelay(50);
 
     /* Pulse bit 0 of the output port P2 of the keyboard controller.
-       * This will reset the CPU. */
+     * This will reset the CPU. */
     outb(CONTROL_REG, 0xfe);
     timer_udelay(50);
   }
@@ -76,7 +76,7 @@ void shutdown_reboot(void) {
    as long as we're running on Bochs or QEMU. */
 void shutdown_power_off(void) {
   const char s[] = "Shutdown";
-  const char* p;
+  const char *p;
 
 #ifdef FILESYS
   filesys_done();
