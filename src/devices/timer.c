@@ -1,14 +1,14 @@
 #include "devices/timer.h"
-#include <debug.h>
-#include <inttypes.h>
-#include <list.h>
-#include <round.h>
-#include <stdio.h>
 #include "devices/pit.h"
 #include "threads/interrupt.h"
 #include "threads/malloc.h"
 #include "threads/synch.h"
 #include "threads/thread.h"
+#include <debug.h>
+#include <inttypes.h>
+#include <list.h>
+#include <round.h>
+#include <stdio.h>
 
 /* See [8254] for hardware details of the 8254 timer chip. */
 
@@ -48,7 +48,7 @@ void timer_init(void) {
   pit_configure_channel(0, 2, TIMER_FREQ);
   intr_register_ext(0x20, timer_interrupt, "8254 Timer");
 
-  /* Additionally initialize sleeping threads list */
+  /* Initialize sleeping threads list */
   list_init(&sleeping_thread_list);
 }
 
@@ -89,11 +89,11 @@ int64_t timer_ticks(void) {
 int64_t timer_elapsed(int64_t then) { return timer_ticks() - then; }
 
 /* Helper function for inserting threads into the sleeping thread list in order of wakeup time */
-static bool wakeup_less(const struct list_elem *a, const struct list_elem *b, void* aux UNUSED) {
+static bool wakeup_less(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED) {
   struct sleeping_thread *thread_a = list_entry(a, struct sleeping_thread, elem);
   struct sleeping_thread *thread_b = list_entry(b, struct sleeping_thread, elem);
 
-  return thread_a->wakeup_time <= thread_b->wakeup_time;
+  return thread_a->wakeup_time < thread_b->wakeup_time;
 }
 
 /* Sleeps for approximately TICKS timer ticks.  Interrupts must
@@ -102,19 +102,22 @@ void timer_sleep(int64_t ticks) {
   int64_t start = timer_ticks();
 
   ASSERT(intr_get_level() == INTR_ON);
-  
-  /* Disable interrupts, push thread onto sleeping threads list in order of wakeup time, then re-enable interrupts */
+
+  /* Disable interrupts, push thread onto sleeping threads list in order of wakeup time, then
+   * re-enable interrupts */
   enum intr_level old_level = intr_disable();
 
+  struct thread *t = thread_current();
+
   struct sleeping_thread *new_sleeping_thread = malloc(sizeof(struct sleeping_thread));
-  new_sleeping_thread->thread_ptr = thread_current();
+  new_sleeping_thread->thread_ptr = t;
   new_sleeping_thread->wakeup_time = start + ticks;
   list_insert_ordered(&sleeping_thread_list, &new_sleeping_thread->elem, wakeup_less, NULL);
 
-  intr_set_level(old_level);
+  /* Wait to be unblocked */
+  thread_block();
 
-  /* Yield after placing self on sleep queue */
-  thread_yield();
+  intr_set_level(old_level);
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
@@ -160,19 +163,22 @@ void timer_ndelay(int64_t ns) { real_time_delay(ns, 1000 * 1000 * 1000); }
 void timer_print_stats(void) { printf("Timer: %" PRId64 " ticks\n", timer_ticks()); }
 
 /* Timer interrupt handler. */
-static void timer_interrupt(struct intr_frame* args UNUSED) {
+static void timer_interrupt(struct intr_frame *args UNUSED) {
   ticks++;
   thread_tick();
 
   while (!list_empty(&sleeping_thread_list)) {
     struct list_elem *front_elem = list_begin(&sleeping_thread_list);
-    struct sleeping_thread *front_sleeping_thread = list_entry(front_elem, struct sleeping_thread, elem);
+    struct sleeping_thread *front_sleeping_thread =
+        list_entry(front_elem, struct sleeping_thread, elem);
 
     if (ticks >= front_sleeping_thread->wakeup_time) {
       struct thread *t = front_sleeping_thread->thread_ptr;
-      if (thread_get_priority() < t->priority) { // TODO: replace with get_effective_priority when implemented
+      if (thread_get_priority() <
+          t->priority) { // TODO: replace with get_effective_priority when implemented
         intr_yield_on_return();
       }
+      thread_unblock(t);
       list_pop_front(&sleeping_thread_list);
     } else {
       break;

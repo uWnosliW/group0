@@ -1,11 +1,11 @@
 #ifndef THREADS_THREAD_H
 #define THREADS_THREAD_H
 
+#include "threads/fixed-point.h"
+#include "threads/synch.h"
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
-#include "threads/synch.h"
-#include "threads/fixed-point.h"
 
 /* States in a thread's life cycle. */
 enum thread_status {
@@ -86,16 +86,18 @@ struct thread {
   tid_t tid;                 /* Thread identifier. */
   enum thread_status status; /* Thread state. */
   char name[16];             /* Name (for debugging purposes). */
-  uint8_t* stack;            /* Saved stack pointer. */
-  int priority;              /* Priority. */
-  struct list_elem allelem;  /* List element for all threads list. */
+  uint8_t *stack;            /* Saved stack pointer. */
+
+  int priority; /* Priority. */
+
+  struct list_elem allelem; /* List element for all threads list. */
 
   /* Shared between thread.c and synch.c. */
   struct list_elem elem; /* List element. */
 
 #ifdef USERPROG
   /* Owned by process.c. */
-  struct process* pcb; /* Process control block if this thread is a userprog */
+  struct process *pcb; /* Process control block if this thread is a userprog */
 #endif
 
   /* Owned by thread.c. */
@@ -124,22 +126,22 @@ void thread_start(void);
 void thread_tick(void);
 void thread_print_stats(void);
 
-typedef void thread_func(void* aux);
-tid_t thread_create(const char* name, int priority, thread_func*, void*);
+typedef void thread_func(void *aux);
+tid_t thread_create(const char *name, int priority, thread_func *, void *);
 
 void thread_block(void);
-void thread_unblock(struct thread*);
+void thread_unblock(struct thread *);
 
-struct thread* thread_current(void);
+struct thread *thread_current(void);
 tid_t thread_tid(void);
-const char* thread_name(void);
+const char *thread_name(void);
 
 void thread_exit(void) NO_RETURN;
 void thread_yield(void);
 
 /* Performs some operation on thread t, given auxiliary data AUX. */
-typedef void thread_action_func(struct thread* t, void* aux);
-void thread_foreach(thread_action_func*, void*);
+typedef void thread_action_func(struct thread *t, void *aux);
+void thread_foreach(thread_action_func *, void *);
 
 int thread_get_priority(void);
 void thread_set_priority(int);
