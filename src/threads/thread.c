@@ -351,14 +351,17 @@ int thread_get_priority(void) { return thread_get_effpriority(thread_current());
 // gets the effective priority of a thread
 int thread_get_effpriority(struct thread *t) {
   sema_down(&(t->eprio_list_sema));
+
   // return base priority if no donations
   if (list_empty(&(t->effective_priorities))) {
+    sema_up(&(t->eprio_list_sema));
     return t->priority;
   }
 
   // recursively find the maximum effective priority of donors
   int priority = t->priority;
-  for (struct list_elem *e = list_begin(&all_list); e != list_end(&all_list); e = list_next(e)) {
+  for (struct list_elem *e = list_begin(&(t->effective_priorities));
+       e != list_end(&(t->effective_priorities)); e = list_next(e)) {
     struct thread *t = list_entry(e, struct thread, elem);
     int donor_priority = thread_get_effpriority(t);
     if (donor_priority > priority) {
@@ -366,7 +369,7 @@ int thread_get_effpriority(struct thread *t) {
     }
   }
   sema_up(&(t->eprio_list_sema));
-  return 0;
+  return priority;
 }
 
 // sets the effective priority of a thread
@@ -625,8 +628,8 @@ bool thread_try_preempt(struct thread *compare) {
   bool preempt = false;
   struct list_elem *e;
   for (e = list_begin(&fifo_ready_list); e != list_end(&fifo_ready_list); e = list_next(e)) {
-    struct thread *t = list_entry(e, struct thread, allelem);
-    if (thread_get_priority() < thread_get_effpriority(t)) {
+    struct thread *t = list_entry(e, struct thread, elem);
+    if (thread_current()->tid != t->tid && thread_get_priority() < thread_get_effpriority(t)) {
       preempt = true;
       break;
     }
@@ -640,6 +643,7 @@ bool thread_try_preempt(struct thread *compare) {
   intr_set_level(old_level);
   return preempt;
 }
+
 /* Returns a tid to use for a new thread. */
 static tid_t allocate_tid(void) {
   static tid_t next_tid = 1;
