@@ -216,6 +216,10 @@ tid_t thread_create(const char *name, int priority, thread_func *function, void 
   /* Add to run queue. */
   thread_unblock(t);
 
+  /* Yield if the created thread's priority is higher than the current thread's */
+  if (thread_effective_priority(t) > thread_get_priority())
+    thread_yield();
+
   return tid;
 }
 
@@ -335,12 +339,20 @@ void thread_foreach(thread_action_func *func, void *aux) {
 }
 
 /* Sets the current thread's base priority to NEW_PRIORITY. */
-void thread_set_priority(int new_priority) { thread_current()->priority = new_priority; }
+void thread_set_priority(int new_priority) {
+  thread_current()->priority = new_priority;
+
+  /* Find new highest priority thread on the ready queue and yield if it's not this thread */
+  struct list_elem *max_prio_elem = list_max(&fifo_ready_list, prio_less, NULL);
+  int max_ready_prio = thread_effective_priority(list_entry(max_prio_elem, struct thread, elem));
+  if (new_priority < max_ready_prio)
+    thread_yield();
+}
 
 /* Returns the effective priority of a given thread */
 int thread_effective_priority(struct thread *t) {
   enum intr_level old_level = intr_disable();
-  int effective_priority = thread_current()->priority;
+  int effective_priority = t->priority;
   intr_set_level(old_level);
 
   return effective_priority;

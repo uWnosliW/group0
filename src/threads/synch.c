@@ -355,7 +355,7 @@ static bool cond_prio_less(const struct list_elem *a, const struct list_elem *b,
   struct thread *thread_a = list_entry(a, struct semaphore_elem, elem)->thread_ptr;
   struct thread *thread_b = list_entry(b, struct semaphore_elem, elem)->thread_ptr;
 
-  return thread_a->priority < thread_b->priority; // TODO: change to effective priority
+  return thread_effective_priority(thread_a) < thread_effective_priority(thread_b);
 }
 
 // TODO: debug, remove when finished
