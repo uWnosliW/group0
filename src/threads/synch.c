@@ -236,15 +236,18 @@ void lock_release(struct lock *lock) {
   enum intr_level old_level = intr_disable();
 
   struct thread *t = thread_current();
-  struct list_elem *e = list_begin(&t->locks_held);
-  struct lock *lck = list_entry(e, struct lock, elem);
 
-  while (lck != lock) {
-    e = list_next(e);
-    lck = list_entry(e, struct lock, elem);
+  if (!list_empty(&t->locks_held)) {
+    struct list_elem *e = list_begin(&t->locks_held);
+    struct lock *lck = list_entry(e, struct lock, elem);
+
+    while (e != list_end(&t->locks_held) && lck != lock) {
+      e = list_next(e);
+      lck = list_entry(e, struct lock, elem);
+    }
+    ASSERT(e != list_end(&t->locks_held));
+    list_remove(e);
   }
-  list_remove(e);
-
   intr_set_level(old_level);
 
   lock->holder = NULL;
