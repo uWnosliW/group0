@@ -87,19 +87,12 @@ struct thread {
   enum thread_status status; /* Thread state. */
   char name[16];             /* Name (for debugging purposes). */
   uint8_t *stack;            /* Saved stack pointer. */
-  // int priority;              /* Priority. */
-  struct list_elem allelem; /* List element for all threads list. */
 
-  int priority;                     // Base priority the thread is assigned upon creation
-  struct semaphore eprio_list_sema; // Lock for list of effective priorities
-  struct list
-      effective_priorities;     // This is the list of effective priorities. This value is
-                                // what other threads see then they ask for this thread's priority.
-                                // The firstelement of this list is always the base priority
-  struct list locks_held;       // List of locks the thread holds
-  struct lock *lock_waiting_on; // If the current thread has been blocked on lock_acquire,
-                                // waiting_for will store the lock it's waiting for; otherwise,
-                                // it will be null
+  int priority;                /* Base priority. */
+  struct lock *lock_requested; /* Lock requested, used in priority donation */
+  struct list locks_held;      /* List of locks held, used in priority donation */
+
+  struct list_elem allelem; /* List element for all threads list. */
 
   /* Shared between thread.c and synch.c. */
   struct list_elem elem; /* List element. */
@@ -153,6 +146,9 @@ void thread_yield(void);
 /* Performs some operation on thread t, given auxiliary data AUX. */
 typedef void thread_action_func(struct thread *t, void *aux);
 void thread_foreach(thread_action_func *, void *);
+
+bool prio_less(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
+int thread_get_eprio(struct thread *t);
 
 int thread_get_priority(void);
 void thread_set_priority(int);

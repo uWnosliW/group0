@@ -18,9 +18,9 @@ void sema_self_test(void);
 
 /* Lock. */
 struct lock {
+  struct list_elem elem;
   struct thread *holder;      /* Thread holding lock (for debugging). */
   struct semaphore semaphore; /* Binary semaphore controlling access. */
-  struct list_elem elem;      // So threads can keep track of locks held
 };
 typedef struct lock lock_t;
 // stores priority donations
@@ -76,8 +76,6 @@ typedef struct closure {
 
 /* Initialize closure with default vals */
 void closure_init(closure_t *cl, void *env, void *(*fn)(void *, void *));
-void remove_donation(struct thread *t, struct thread *donor);
-void donate_priority(struct thread *recipient, struct thread *donor);
 
 /* Atomic counter, for reference counting */
 typedef struct atomic_int {
@@ -119,6 +117,7 @@ void atomic_int_call_cl(atomic_int_t *ai, closure_t *cl);
       if (cl != NULL) {                                                                            \
         cl->cl(cl->env, NULL);                                                                     \
       }                                                                                            \
+      lock_release(&ai->mutex);                                                                    \
       free((ARC_OBJ));                                                                             \
     } else {                                                                                       \
       lock_release(&ai->mutex);                                                                    \

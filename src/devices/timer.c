@@ -167,20 +167,23 @@ static void timer_interrupt(struct intr_frame *args UNUSED) {
   ticks++;
   thread_tick();
 
+  /* Iterate through sleeping threads list, waking threads up if we're past their wakeup time */
   while (!list_empty(&sleeping_thread_list)) {
     struct list_elem *front_elem = list_begin(&sleeping_thread_list);
     struct sleeping_thread *front_sleeping_thread =
         list_entry(front_elem, struct sleeping_thread, elem);
 
     if (ticks >= front_sleeping_thread->wakeup_time) {
-      struct thread *t = front_sleeping_thread->thread_ptr;
-      if (thread_get_priority() <
-          t->priority) { // TODO: replace with get_effective_priority when implemented
-        intr_yield_on_return();
-      }
-      thread_unblock(t);
       list_pop_front(&sleeping_thread_list);
+      struct thread *t = front_sleeping_thread->thread_ptr;
+
+      /* Yield if the thread woken up has higher priority than the current thread */
+      if (thread_get_eprio(t) > thread_get_priority())
+        intr_yield_on_return();
+
+      thread_unblock(t);
     } else {
+      /* No need to continue iterating since sleeping threads are sorted based on wakeup time */
       break;
     }
   }
