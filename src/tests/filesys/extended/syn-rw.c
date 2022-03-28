@@ -1,11 +1,11 @@
 /* Grows a file in chunks while subprocesses read the growing
    file. */
 
-#include <random.h>
-#include <syscall.h>
 #include "tests/filesys/extended/syn-rw.h"
 #include "tests/lib.h"
 #include "tests/main.h"
+#include <random.h>
+#include <syscall.h>
 
 char buf[BUF_SIZE];
 

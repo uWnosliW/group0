@@ -1,12 +1,12 @@
 /* Pushes to FPU registers, then exec's a process which does the same.
    Ensures that the exec'd process' FPU does not interfere with ours. */
 
-#include <syscall.h>
 #include "tests/lib.h"
 #include "tests/main.h"
+#include <syscall.h>
 
 #define NUM_VALUES 4
-const char* test_name = "fp-asm";
+const char *test_name = "fp-asm";
 static int values[NUM_VALUES] = {1, 6, 2, 162};
 
 void test_main(void) {

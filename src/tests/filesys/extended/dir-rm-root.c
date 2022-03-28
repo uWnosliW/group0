@@ -1,9 +1,9 @@
 /* Try to remove the root directory.
    This must fail. */
 
-#include <syscall.h>
 #include "tests/lib.h"
 #include "tests/main.h"
+#include <syscall.h>
 
 void test_main(void) {
   CHECK(!remove("/"), "remove \"/\" (must fail)");

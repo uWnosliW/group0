@@ -1,10 +1,10 @@
 /* Encrypts, then decrypts, 2 MB of memory and verifies that the
    values are as they should be. */
 
-#include <string.h>
 #include "tests/arc4.h"
 #include "tests/lib.h"
 #include "tests/main.h"
+#include <string.h>
 
 #define SIZE (2 * 1024 * 1024)
 

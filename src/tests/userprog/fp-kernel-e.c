@@ -1,11 +1,11 @@
 /* Verifies that the compute_e system call is implemented correctly */
 
-#include <float.h>
-#include <syscall.h>
 #include "tests/lib.h"
 #include "tests/main.h"
+#include <float.h>
+#include <syscall.h>
 
-const char* test_name = "fp-kernel-e";
+const char *test_name = "fp-kernel-e";
 
 void test_main(void) {
   msg("Computing e...");

@@ -95,13 +95,13 @@
    After 180 seconds, recent_cpu is 189.97, load_avg is 0.95.
 */
 
-#include <stdio.h>
+#include "devices/timer.h"
 #include "tests/threads/tests.h"
 #include "threads/init.h"
 #include "threads/malloc.h"
 #include "threads/synch.h"
 #include "threads/thread.h"
-#include "devices/timer.h"
+#include <stdio.h>
 
 /* Sensitive to assumption that recent_cpu updates happen exactly
    when timer_ticks() % TIMER_FREQ == 0. */

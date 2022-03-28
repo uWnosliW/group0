@@ -3,7 +3,7 @@
 
 #include <test-lib.h>
 
-void run_threads_test(const char*);
+void run_threads_test(const char *);
 
 extern test_func test_alarm_single;
 extern test_func test_alarm_multiple;

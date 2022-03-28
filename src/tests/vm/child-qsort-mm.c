@@ -1,15 +1,15 @@
 /* Mmaps a 128 kB file "sorts" the bytes in it, using quick sort,
    a multi-pass divide and conquer algorithm.  */
 
-#include <debug.h>
-#include <syscall.h>
 #include "tests/lib.h"
 #include "tests/main.h"
 #include "tests/vm/qsort.h"
+#include <debug.h>
+#include <syscall.h>
 
-int main(int argc UNUSED, char* argv[]) {
+int main(int argc UNUSED, char *argv[]) {
   int handle;
-  unsigned char* p = (unsigned char*)0x10000000;
+  unsigned char *p = (unsigned char *)0x10000000;
 
   test_name = "child-qsort-mm";
   quiet = true;

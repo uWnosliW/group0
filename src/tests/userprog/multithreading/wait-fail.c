@@ -2,8 +2,8 @@
 
 #include "tests/lib.h"
 #include "tests/main.h"
-#include <syscall.h>
 #include <pthread.h>
+#include <syscall.h>
 
 // Thread data
 struct thread_data {
@@ -11,11 +11,11 @@ struct thread_data {
   bool should_succeed;
 };
 
-void thread_function(void* arg_);
+void thread_function(void *arg_);
 
 /* Waits on a child process */
-void thread_function(void* arg_) {
-  struct thread_data* thread_data = (struct thread_data*)arg_;
+void thread_function(void *arg_) {
+  struct thread_data *thread_data = (struct thread_data *)arg_;
   pid_t return_value = wait(thread_data->child_pid);
   if (thread_data->should_succeed) {
     ASSERT(return_value == 81);

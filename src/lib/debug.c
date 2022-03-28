@@ -12,7 +12,7 @@
    line numbers, and function names.  */
 void debug_backtrace(void) {
   static bool explained;
-  void** frame;
+  void **frame;
 
   printf("Call stack: %p", __builtin_return_address(0));
   for (frame = __builtin_frame_address(1); (uintptr_t)frame >= 0x1000 && frame[0] != NULL;

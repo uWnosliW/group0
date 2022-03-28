@@ -13,11 +13,11 @@
 lock_t esp_lock;
 uint32_t lowest_esp;
 
-void get_esp_address(void* arg_);
-void assert_higher_esp(void* arg_);
+void get_esp_address(void *arg_);
+void assert_higher_esp(void *arg_);
 
 /* Updates lowest_esp if this thread's ESP is lower than the lowest ESP */
-void get_esp_address(void* arg_) {
+void get_esp_address(void *arg_) {
   lock_acquire(&esp_lock);
   uint32_t esp = (uint32_t)&arg_;
   lowest_esp = esp < lowest_esp ? esp : lowest_esp;
@@ -25,7 +25,7 @@ void get_esp_address(void* arg_) {
 }
 
 /* Fails if this thread's esp is lower than lowest_esp */
-void assert_higher_esp(void* arg_) {
+void assert_higher_esp(void *arg_) {
   lock_acquire(&esp_lock);
   uint32_t esp = (uint32_t)&arg_;
   if (esp < lowest_esp)

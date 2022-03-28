@@ -1,17 +1,17 @@
 /* Reads data spanning two pages in virtual address space,
    which must succeed. */
 
-#include <string.h>
-#include <syscall.h>
-#include "tests/userprog/boundary.h"
-#include "tests/userprog/sample.inc"
 #include "tests/lib.h"
 #include "tests/main.h"
+#include "tests/userprog/boundary.h"
+#include "tests/userprog/sample.inc"
+#include <string.h>
+#include <syscall.h>
 
 void test_main(void) {
   int handle;
   int byte_cnt;
-  char* buffer;
+  char *buffer;
 
   CHECK((handle = open("sample.txt")) > 1, "open \"sample.txt\"");
 

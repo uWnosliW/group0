@@ -16,13 +16,13 @@
 #include <termios.h>
 #include <unistd.h>
 
-static void fail_io(const char* msg, ...) __attribute__((noreturn))
+static void fail_io(const char *msg, ...) __attribute__((noreturn))
 __attribute__((format(printf, 1, 2)));
 
 /* Prints MSG, formatting as with printf(),
    plus an error message based on errno,
    and exits. */
-static void fail_io(const char* msg, ...) {
+static void fail_io(const char *msg, ...) {
   va_list args;
 
   va_start(args, msg);
@@ -69,7 +69,7 @@ static void make_nonblocking(int fd, bool nonblocking) {
    is true, that returned end-of-file or error indication RETVAL.
    The system call is named CALL, for use in error messages.
    Sets *FD to -1 if the fd is no longer readable or writable. */
-static void handle_error(ssize_t retval, int* fd, bool fd_is_pty, const char* call) {
+static void handle_error(ssize_t retval, int *fd, bool fd_is_pty, const char *call) {
   if (fd_is_pty) {
     if (retval < 0) {
       if (errno == EIO) {
@@ -124,7 +124,7 @@ static void relay(int pty, int dead_child_fd) {
     FD_ZERO(&read_fds);
     FD_ZERO(&write_fds);
     for (i = 0; i < 2; i++) {
-      struct pipe* p = &pipes[i];
+      struct pipe *p = &pipes[i];
 
       /* Don't do anything with the stdin->pty pipe until we
              have some data for the pty->stdout pipe.  If we get
@@ -149,7 +149,7 @@ static void relay(int pty, int dead_child_fd) {
       break;
 
     for (i = 0; i < 2; i++) {
-      struct pipe* p = &pipes[i];
+      struct pipe *p = &pipes[i];
       if (p->in != -1 && FD_ISSET(p->in, &read_fds)) {
         ssize_t n = read(p->in, p->buf + p->ofs + p->size, sizeof p->buf - p->ofs - p->size);
         if (n > 0) {
@@ -180,7 +180,7 @@ static void relay(int pty, int dead_child_fd) {
 
   make_nonblocking(STDOUT_FILENO, false);
   for (;;) {
-    struct pipe* p = &pipes[1];
+    struct pipe *p = &pipes[1];
     ssize_t n;
 
     /* Write buffer. */
@@ -208,9 +208,9 @@ static void sigchld_handler(int signo __attribute__((unused))) {
     _exit(1);
 }
 
-int main(int argc __attribute__((unused)), char* argv[]) {
+int main(int argc __attribute__((unused)), char *argv[]) {
   int master, slave;
-  char* name;
+  char *name;
   pid_t pid;
   struct sigaction sa;
   int pipe_fds[2];

@@ -1,12 +1,12 @@
 #include "devices/serial.h"
-#include <debug.h>
 #include "devices/input.h"
 #include "devices/intq.h"
 #include "devices/timer.h"
-#include "threads/io.h"
 #include "threads/interrupt.h"
+#include "threads/io.h"
 #include "threads/synch.h"
 #include "threads/thread.h"
+#include <debug.h>
 
 /* Register definitions for the 16550A UART used in PCs.
    The 16550A has a lot more going on than shown here, but this
@@ -186,7 +186,7 @@ static void putc_poll(uint8_t byte) {
 }
 
 /* Serial interrupt handler. */
-static void serial_interrupt(struct intr_frame* f UNUSED) {
+static void serial_interrupt(struct intr_frame *f UNUSED) {
   /* Inquire about interrupt in UART.  Without this, we can
      occasionally miss an interrupt running under QEMU. */
   inb(IIR_REG);

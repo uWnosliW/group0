@@ -3,8 +3,8 @@
 
 #include "tests/lib.h"
 #include "tests/main.h"
-#include <syscall.h>
 #include <pthread.h>
+#include <syscall.h>
 
 #define NUM_THREADS 10
 
@@ -14,13 +14,13 @@ struct thread_data {
   sema_t sema;
 };
 
-void thread_function(void* arg_);
+void thread_function(void *arg_);
 
 /* Each thread prints its thread number n, spawns a new thread with
    thread number n + 1, and waits for that thread to finish executing
    before this thread prints its thread number again and finishes */
-void thread_function(void* arg_) {
-  struct thread_data* my_thread_data = (struct thread_data*)arg_;
+void thread_function(void *arg_) {
+  struct thread_data *my_thread_data = (struct thread_data *)arg_;
   msg("Thread %d starting", my_thread_data->thread_num);
 
   // Create child thread, and sleep until it finishes

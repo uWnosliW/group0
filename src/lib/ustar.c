@@ -1,8 +1,8 @@
-#include <ustar.h>
 #include <limits.h>
 #include <packed.h>
 #include <stdio.h>
 #include <string.h>
+#include <ustar.h>
 
 /* Header for ustar-format tar archive.  See the documentation of
    the "pax" utility in [SUSv3] for the the "ustar" format
@@ -31,8 +31,8 @@ struct ustar_header {
 } PACKED;
 
 /* Returns the checksum for the given ustar format HEADER. */
-static unsigned int calculate_chksum(const struct ustar_header* h) {
-  const uint8_t* header = (const uint8_t*)h;
+static unsigned int calculate_chksum(const struct ustar_header *h) {
+  const uint8_t *header = (const uint8_t *)h;
   unsigned int chksum;
   size_t i;
 
@@ -57,7 +57,7 @@ static unsigned int calculate_chksum(const struct ustar_header* h) {
 
    The return value can be a suffix of FILE_NAME or a string
    literal. */
-static const char* strip_antisocial_prefixes(const char* file_name) {
+static const char *strip_antisocial_prefixes(const char *file_name) {
   while (*file_name == '/' || !memcmp(file_name, "./", 2) || !memcmp(file_name, "../", 3))
     file_name = strchr(file_name, '/') + 1;
   return *file_name == '\0' || !strcmp(file_name, "..") ? "." : file_name;
@@ -70,9 +70,9 @@ static const char* strip_antisocial_prefixes(const char* file_name) {
 
    If successful, returns true.  On failure (due to an
    excessively long file name), returns false. */
-bool ustar_make_header(const char* file_name, enum ustar_type type, int size,
+bool ustar_make_header(const char *file_name, enum ustar_type type, int size,
                        char header[USTAR_HEADER_SIZE]) {
-  struct ustar_header* h = (struct ustar_header*)header;
+  struct ustar_header *h = (struct ustar_header *)header;
 
   ASSERT(sizeof(struct ustar_header) == USTAR_HEADER_SIZE);
   ASSERT(type == USTAR_REGULAR || type == USTAR_DIRECTORY);
@@ -113,7 +113,7 @@ bool ustar_make_header(const char* file_name, enum ustar_type type, int size,
    seems ambiguous as to whether these fields must be padded on
    the left with '0's, so we accept any field that fits in the
    available space, regardless of whether it fills the space. */
-static bool parse_octal_field(const char* s, size_t size, unsigned long int* value) {
+static bool parse_octal_field(const char *s, size_t size, unsigned long int *value) {
   size_t ofs;
 
   *value = 0;
@@ -141,7 +141,7 @@ static bool parse_octal_field(const char* s, size_t size, unsigned long int* val
 
 /* Returns true if the CNT bytes starting at BLOCK are all zero,
    false otherwise. */
-static bool is_all_zeros(const char* block, size_t cnt) {
+static bool is_all_zeros(const char *block, size_t cnt) {
   while (cnt-- > 0)
     if (*block++ != 0)
       return false;
@@ -154,9 +154,9 @@ static bool is_all_zeros(const char* block, size_t cnt) {
    literal), its type in *TYPE, and its size in bytes in *SIZE,
    and returns a null pointer.  On failure, returns a
    human-readable error message. */
-const char* ustar_parse_header(const char header[USTAR_HEADER_SIZE], const char** file_name,
-                               enum ustar_type* type, int* size) {
-  const struct ustar_header* h = (const struct ustar_header*)header;
+const char *ustar_parse_header(const char header[USTAR_HEADER_SIZE], const char **file_name,
+                               enum ustar_type *type, int *size) {
+  const struct ustar_header *h = (const struct ustar_header *)header;
   unsigned long int chksum, size_ul;
 
   ASSERT(sizeof(struct ustar_header) == USTAR_HEADER_SIZE);
