@@ -112,6 +112,7 @@ void atomic_int_call_cl(atomic_int_t *ai, closure_t *cl);
       if (cl != NULL) {                                                                            \
         cl->cl(cl->env, NULL);                                                                     \
       }                                                                                            \
+      lock_release(&ai->mutex);                                                                    \
       free((ARC_OBJ));                                                                             \
     } else {                                                                                       \
       lock_release(&ai->mutex);                                                                    \

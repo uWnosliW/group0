@@ -122,9 +122,8 @@ void sema_up(struct semaphore *sema) {
   intr_set_level(old_level);
 
   /* If the thread woken up has higher priority, have the current thread yield */
-  if (!intr_context() && should_yield) {
+  if (!intr_context() && should_yield)
     thread_yield();
-  }
 }
 
 static void sema_test_helper(void *sema_);
