@@ -178,7 +178,7 @@ static void timer_interrupt(struct intr_frame *args UNUSED) {
       struct thread *t = front_sleeping_thread->thread_ptr;
 
       /* Yield if the thread woken up has higher priority than the current thread */
-      if (thread_effective_priority(t) > thread_get_priority())
+      if (thread_get_eprio(t) > thread_get_priority())
         intr_yield_on_return();
 
       thread_unblock(t);

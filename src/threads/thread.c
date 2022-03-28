@@ -340,11 +340,16 @@ void thread_foreach(thread_action_func *func, void *aux) {
 
 /* Sets the current thread's base priority to NEW_PRIORITY. */
 void thread_set_priority(int new_priority) {
+  enum intr_level old_level = intr_disable();
+
   thread_current()->priority = new_priority;
 
   /* Find new highest priority thread on the ready queue and yield if it's not this thread */
   struct list_elem *max_prio_elem = list_max(&fifo_ready_list, prio_less, NULL);
   int max_ready_prio = thread_get_eprio(list_entry(max_prio_elem, struct thread, elem));
+
+  intr_set_level(old_level);
+
   if (new_priority < max_ready_prio)
     thread_yield();
 }
@@ -612,20 +617,19 @@ int thread_get_eprio(struct thread *t) {
   if (!list_empty(&t->locks_held)) {
     struct list *locks_held_ptr = &t->locks_held;
 
-    struct list_elem *lock_e = list_begin(locks_held_ptr);
-    while (lock_e != list_end(locks_held_ptr)) {
-      struct list *lock_waiters_ptr = &(list_entry(lock_e, struct lock, elem)->semaphore.waiters);
+    for (struct list_elem *lock_e = list_begin(locks_held_ptr); lock_e != list_end(locks_held_ptr);
+         lock_e = list_next(lock_e)) {
+      struct lock *lck = list_entry(lock_e, struct lock, elem);
+      struct list *lock_waiters_ptr = &lck->semaphore.waiters;
 
       if (!list_empty(lock_waiters_ptr)) {
-        struct thread *max_prio_thread =
-            list_entry(list_max(lock_waiters_ptr, prio_less, NULL), struct thread, elem);
-        int max_prio = thread_get_eprio(max_prio_thread);
+        struct list_elem *max_prio_elem = list_max(lock_waiters_ptr, prio_less, NULL);
+        struct thread *max_prio_waiter = list_entry(max_prio_elem, struct thread, elem);
+        int max_prio = thread_get_eprio(max_prio_waiter);
 
         if (max_prio > eff_prio)
           eff_prio = max_prio;
       }
-
-      lock_e = list_next(lock_e);
     }
   }
 
