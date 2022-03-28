@@ -344,13 +344,20 @@ void thread_set_priority(int new_priority) {
 
   thread_current()->priority = new_priority;
 
-  /* Find new highest priority thread on the ready queue and yield if it's not this thread */
-  struct list_elem *max_prio_elem = list_max(&fifo_ready_list, prio_less, NULL);
-  int max_ready_prio = thread_get_eprio(list_entry(max_prio_elem, struct thread, elem));
+  bool should_yield = false;
+
+  if (!list_empty(&fifo_ready_list)) {
+    /* Find new highest priority thread on the ready queue and yield if it's not this thread */
+    struct list_elem *max_prio_elem = list_max(&fifo_ready_list, prio_less, NULL);
+    int max_ready_prio = thread_get_eprio(list_entry(max_prio_elem, struct thread, elem));
+
+    if (new_priority < max_ready_prio)
+      should_yield = true;
+  }
 
   intr_set_level(old_level);
 
-  if (new_priority < max_ready_prio)
+  if (should_yield)
     thread_yield();
 }
 
