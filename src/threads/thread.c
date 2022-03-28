@@ -217,7 +217,7 @@ tid_t thread_create(const char *name, int priority, thread_func *function, void 
   thread_unblock(t);
 
   /* Yield if the created thread's priority is higher than the current thread's */
-  if (thread_effective_priority(t) > thread_get_priority())
+  if (thread_get_eprio(t) > thread_get_priority())
     thread_yield();
 
   return tid;
@@ -344,22 +344,13 @@ void thread_set_priority(int new_priority) {
 
   /* Find new highest priority thread on the ready queue and yield if it's not this thread */
   struct list_elem *max_prio_elem = list_max(&fifo_ready_list, prio_less, NULL);
-  int max_ready_prio = thread_effective_priority(list_entry(max_prio_elem, struct thread, elem));
+  int max_ready_prio = thread_get_eprio(list_entry(max_prio_elem, struct thread, elem));
   if (new_priority < max_ready_prio)
     thread_yield();
 }
 
-/* Returns the effective priority of a given thread */
-int thread_effective_priority(struct thread *t) {
-  enum intr_level old_level = intr_disable();
-  int effective_priority = t->priority;
-  intr_set_level(old_level);
-
-  return effective_priority;
-}
-
 /* Returns the current thread's effective priority. */
-int thread_get_priority(void) { thread_effective_priority(thread_current()); }
+int thread_get_priority(void) { thread_get_eprio(thread_current()); }
 
 /* Sets the current thread's nice value to NICE. */
 void thread_set_nice(int nice UNUSED) { /* Not yet implemented. */
@@ -486,14 +477,6 @@ static struct thread *thread_schedule_fifo(void) {
     return idle_thread;
 }
 
-/* Helper less function for finding maximum priority threads */
-bool prio_less(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED) {
-  struct thread *thread_a = list_entry(a, struct thread, elem);
-  struct thread *thread_b = list_entry(b, struct thread, elem);
-
-  return thread_a->priority < thread_b->priority; // TODO: change to effective priority
-}
-
 /* Strict priority scheduler */
 static struct thread *thread_schedule_prio(void) {
   /* Return the idle thread if we have no threads running */
@@ -504,10 +487,7 @@ static struct thread *thread_schedule_prio(void) {
   struct list_elem *max_prio_elem = list_max(&fifo_ready_list, prio_less, NULL);
   list_remove(max_prio_elem);
 
-  struct thread *t = list_entry(max_prio_elem, struct thread, elem);
-  // TODO: check if max_prio_elem should be freed here
-
-  return t;
+  return list_entry(max_prio_elem, struct thread, elem);
 }
 
 /* Fair priority scheduler */
@@ -614,3 +594,42 @@ static tid_t allocate_tid(void) {
 /* Offset of `stack' member within `struct thread'.
    Used by switch.S, which can't figure it out on its own. */
 uint32_t thread_stack_ofs = offsetof(struct thread, stack);
+
+/* Helper less function for finding maximum priority threads */
+bool prio_less(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED) {
+  struct thread *thread_a = list_entry(a, struct thread, elem);
+  struct thread *thread_b = list_entry(b, struct thread, elem);
+
+  return thread_get_eprio(thread_a) < thread_get_eprio(thread_b);
+}
+
+/* Returns the effective priority of a given thread */
+int thread_get_eprio(struct thread *t) {
+  enum intr_level old_level = intr_disable();
+
+  int eff_prio = t->priority;
+
+  if (!list_empty(&t->locks_held)) {
+    struct list *locks_held_ptr = &t->locks_held;
+
+    struct list_elem *lock_e = list_begin(locks_held_ptr);
+    while (lock_e != list_end(locks_held_ptr)) {
+      struct list *lock_waiters_ptr = &(list_entry(lock_e, struct lock, elem)->semaphore.waiters);
+
+      if (!list_empty(lock_waiters_ptr)) {
+        struct thread *max_prio_thread =
+            list_entry(list_max(lock_waiters_ptr, prio_less, NULL), struct thread, elem);
+        int max_prio = thread_get_eprio(max_prio_thread);
+
+        if (max_prio > eff_prio)
+          eff_prio = max_prio;
+      }
+
+      lock_e = list_next(lock_e);
+    }
+  }
+
+  intr_set_level(old_level);
+
+  return eff_prio;
+}

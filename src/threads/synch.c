@@ -114,7 +114,7 @@ void sema_up(struct semaphore *sema) {
 
     struct thread *t = list_entry(max_prio_elem, struct thread, elem);
     thread_unblock(t);
-    if (t->priority > thread_get_priority()) // TODO: change to effective priority
+    if (thread_get_eprio(t) > thread_get_priority())
       should_yield = true;
   }
   sema->value++;
@@ -355,17 +355,7 @@ static bool cond_prio_less(const struct list_elem *a, const struct list_elem *b,
   struct thread *thread_a = list_entry(a, struct semaphore_elem, elem)->thread_ptr;
   struct thread *thread_b = list_entry(b, struct semaphore_elem, elem)->thread_ptr;
 
-  return thread_effective_priority(thread_a) < thread_effective_priority(thread_b);
-}
-
-// TODO: debug, remove when finished
-static void print_cond_waiters(struct condition *cond) {
-  struct list_elem *e = list_begin(&cond->waiters);
-  while (e != list_end(&cond->waiters)) {
-    struct thread *t = list_entry(e, struct semaphore_elem, elem)->thread_ptr;
-    printf("waiter %x: %d\n", t, t->priority);
-    e = list_next(e);
-  }
+  return thread_get_eprio(thread_a) < thread_get_eprio(thread_b);
 }
 
 /* If any threads are waiting on COND (protected by LOCK), then
@@ -385,7 +375,6 @@ void cond_signal(struct condition *cond, struct lock *lock UNUSED) {
     struct list_elem *max_prio_elem = list_max(&cond->waiters, cond_prio_less, NULL);
     list_remove(max_prio_elem);
     sema_up(&list_entry(max_prio_elem, struct semaphore_elem, elem)->semaphore);
-    // TODO: check if max_prio_elem should be freed here
   }
 }
 
