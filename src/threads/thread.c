@@ -362,7 +362,7 @@ void thread_set_priority(int new_priority) {
 }
 
 /* Returns the current thread's effective priority. */
-int thread_get_priority(void) { thread_get_eprio(thread_current()); }
+int thread_get_priority(void) { return thread_get_eprio(thread_current()); }
 
 /* Sets the current thread's nice value to NICE. */
 void thread_set_nice(int nice UNUSED) { /* Not yet implemented. */
