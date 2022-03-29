@@ -9,8 +9,8 @@ static const struct test userprog_tests[] = {
 };
 
 /* Runs the userprog test named NAME. */
-void run_userprog_test(const char *name) {
-  const struct test *t;
+void run_userprog_test(const char* name) {
+  const struct test* t;
 
   for (t = userprog_tests; t < userprog_tests + sizeof userprog_tests / sizeof *userprog_tests; t++)
     if (!strcmp(name, t->name)) {

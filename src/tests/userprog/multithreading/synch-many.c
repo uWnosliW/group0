@@ -14,10 +14,10 @@ sema_t thread_wait;
 sema_t semaphores[NUM_SYNCH];
 lock_t locks[NUM_SYNCH];
 
-void thread_function(void *arg_);
+void thread_function(void* arg_);
 
 /* Acquires all the locks and the semaphores */
-void thread_function(void *arg_ UNUSED) {
+void thread_function(void* arg_ UNUSED) {
   // Informs main that we've started
   msg("Thread started");
   sema_up(&thread_wait);

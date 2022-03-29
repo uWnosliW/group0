@@ -11,7 +11,7 @@ char buf1[1234];
 char buf2[1234];
 
 void test_main(void) {
-  const char *file_name = "deleteme";
+  const char* file_name = "deleteme";
   int fd;
 
   CHECK(create(file_name, sizeof buf1), "create \"%s\"", file_name);

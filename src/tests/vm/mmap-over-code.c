@@ -11,5 +11,5 @@ void test_main(void) {
   int handle;
 
   CHECK((handle = open("sample.txt")) > 1, "open \"sample.txt\"");
-  CHECK(mmap(handle, (void *)test_main_page) == MAP_FAILED, "try to mmap over code segment");
+  CHECK(mmap(handle, (void*)test_main_page) == MAP_FAILED, "try to mmap over code segment");
 }

@@ -18,15 +18,15 @@ void test_alarm_simultaneous(void) { test_sleep(3, 5); }
 struct sleep_test {
   int64_t start;   /* Current time at start of test. */
   int iterations;  /* Number of iterations per thread. */
-  int *output_pos; /* Current position in output buffer. */
+  int* output_pos; /* Current position in output buffer. */
 };
 
-static void sleeper(void *);
+static void sleeper(void*);
 
 /* Runs THREAD_CNT threads thread sleep ITERATIONS times each. */
 static void test_sleep(int thread_cnt, int iterations) {
   struct sleep_test test;
-  int *output;
+  int* output;
   int i;
 
   ASSERT(active_sched_policy == SCHED_FIFO);
@@ -66,8 +66,8 @@ static void test_sleep(int thread_cnt, int iterations) {
 }
 
 /* Sleeper thread. */
-static void sleeper(void *test_) {
-  struct sleep_test *test = test_;
+static void sleeper(void* test_) {
+  struct sleep_test* test = test_;
   int i;
 
   /* Make sure we're at the beginning of a timer tick. */

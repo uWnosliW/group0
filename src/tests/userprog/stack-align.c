@@ -7,10 +7,10 @@
 #include "tests/main.h"
 #include <stdint.h>
 
-void NO_INLINE check_pointer_alignment(void *candidate);
+void NO_INLINE check_pointer_alignment(void* candidate);
 void NO_INLINE check_stack_alignment(void);
 
-void NO_INLINE check_pointer_alignment(void *candidate) {
+void NO_INLINE check_pointer_alignment(void* candidate) {
   uintptr_t address = (uintptr_t)candidate;
   uintptr_t address_last_nybble = address & 0xf;
   msg("last nybble of candidate is 0x%x", address_last_nybble);
@@ -28,7 +28,7 @@ void NO_INLINE check_stack_alignment(void) {
   check_pointer_alignment(&buffer[0]);
 }
 
-int main(int argc UNUSED, char *argv[] UNUSED) {
+int main(int argc UNUSED, char* argv[] UNUSED) {
   test_name = "stack-align";
   msg("begin");
   check_stack_alignment();

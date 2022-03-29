@@ -17,7 +17,7 @@
 #include "threads/thread.h"
 #include "devices/timer.h"
 
-static void block_thread(void *lock_);
+static void block_thread(void* lock_);
 static int64_t start_time;
 static struct lock lock;
 
@@ -43,8 +43,8 @@ void test_mlfqs_block(void) {
   msg("Block thread should have already acquired lock.");
 }
 
-static void block_thread(void *lock_) {
-  struct lock *lock = lock_;
+static void block_thread(void* lock_) {
+  struct lock* lock = lock_;
   int64_t start_time;
 
   msg("Block thread spinning for 20 seconds...");

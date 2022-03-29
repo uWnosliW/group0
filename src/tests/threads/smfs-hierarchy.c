@@ -23,7 +23,7 @@ TEST(64);
 TEST(256);
 
 int counters[8];
-char *thread_names[8] = {"t-min+00", "t-min+08", "t-min+16", "t-min+24",
+char* thread_names[8] = {"t-min+00", "t-min+08", "t-min+16", "t-min+24",
                          "t-min+32", "t-min+40", "t-min+48", "t-min+56"};
 
 struct semaphore barrier_sema;
@@ -49,8 +49,8 @@ void test_smfs_hierarchy(size_t num_threads) {
   for (size_t i = 0; i < num_threads; i++) {
     /* Create competitor threads, each with a priority equal to
        PRI_MIN + c, where c ∈ {0, 8, 16, ..., 56} */
-    void *argument = (void *)&counters[next_pri_offset >> 3];
-    char *name = thread_names[next_pri_offset >> 3];
+    void* argument = (void*)&counters[next_pri_offset >> 3];
+    char* name = thread_names[next_pri_offset >> 3];
     thread_create(name, PRI_MIN + next_pri_offset, counter_thread_func, argument);
     next_pri_offset = (next_pri_offset + 8) % 64;
   }
@@ -86,8 +86,8 @@ void test_smfs_hierarchy(size_t num_threads) {
   }
 }
 
-static void counter_thread_func(void *argument) {
-  int *counter = (int *)argument;
+static void counter_thread_func(void* argument) {
+  int* counter = (int*)argument;
 
   sema_down(&barrier_sema);
 

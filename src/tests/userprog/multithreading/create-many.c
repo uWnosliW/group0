@@ -6,11 +6,11 @@
 
 #define NUM_THREADS 10
 
-void thread_function(void *arg_);
+void thread_function(void* arg_);
 
 /* Simple thread function that just prints its argument */
-void thread_function(void *arg_) {
-  int *arg = (int *)arg_;
+void thread_function(void* arg_) {
+  int* arg = (int*)arg_;
   msg("Thread prints %d", *arg);
 }
 

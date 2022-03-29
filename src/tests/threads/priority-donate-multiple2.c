@@ -59,8 +59,8 @@ void test_priority_donate_multiple2(void) {
       thread_get_priority());
 }
 
-static void a_thread_func(void *lock_) {
-  struct lock *lock = lock_;
+static void a_thread_func(void* lock_) {
+  struct lock* lock = lock_;
 
   lock_acquire(lock);
   msg("Thread a acquired lock a.");
@@ -68,8 +68,8 @@ static void a_thread_func(void *lock_) {
   msg("Thread a finished.");
 }
 
-static void b_thread_func(void *lock_) {
-  struct lock *lock = lock_;
+static void b_thread_func(void* lock_) {
+  struct lock* lock = lock_;
 
   lock_acquire(lock);
   msg("Thread b acquired lock b.");
@@ -77,4 +77,4 @@ static void b_thread_func(void *lock_) {
   msg("Thread b finished.");
 }
 
-static void c_thread_func(void *a_ UNUSED) { msg("Thread c finished."); }
+static void c_thread_func(void* a_ UNUSED) { msg("Thread c finished."); }

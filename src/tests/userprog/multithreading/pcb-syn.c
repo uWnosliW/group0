@@ -17,22 +17,22 @@
 lock_t lock_store[RESOURCE_MAX];
 sema_t sema_store[RESOURCE_MAX];
 
-void file_io(void *arg_);
-void syn_init(void *arg_);
+void file_io(void* arg_);
+void syn_init(void* arg_);
 
 /* File IO threads continuosly open and close files */
-void file_io(void *arg_ UNUSED) {
+void file_io(void* arg_ UNUSED) {
   for (int i = 0; i < RESOURCE_MAX; i++)
     check_file("sample.txt", sample, sizeof sample - 1);
 }
 
 /* Syn Init threads continuously initialize new locks and semaphores.
    These locks and semas are also acquired to ensure initialization succeeded */
-void syn_init(void *arg_) {
-  int *thread_num = (int *)arg_;
+void syn_init(void* arg_) {
+  int* thread_num = (int*)arg_;
   for (int i = 0; i < SYN_MAX; i++) {
-    lock_t *lock = &lock_store[i + (*thread_num * SYN_MAX)];
-    sema_t *sema = &sema_store[i + (*thread_num * SYN_MAX)];
+    lock_t* lock = &lock_store[i + (*thread_num * SYN_MAX)];
+    sema_t* sema = &sema_store[i + (*thread_num * SYN_MAX)];
     lock_check_init(lock);
     lock_acquire(lock);
     lock_release(lock);

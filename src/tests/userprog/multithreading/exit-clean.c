@@ -14,17 +14,17 @@
 #define NUM_ACCESS 100
 
 // Global variables
-char *sample_file = "sample.txt";
+char* sample_file = "sample.txt";
 
-void thread_function(void *arg_);
+void thread_function(void* arg_);
 
 /* Does a bunch of IO */
-void thread_function(void *arg_ UNUSED) {
+void thread_function(void* arg_ UNUSED) {
   for (int i = 0; i < NUM_ACCESS; i++)
     check_file(sample_file, sample, sizeof sample - 1);
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
   test_name = "exit-clean";
 
   if (argc == 4 && !strcmp(argv[1], "root")) {
@@ -58,7 +58,7 @@ int main(int argc, char *argv[]) {
     if (exit_syscall) {
       exit(162);
     } else {
-      int null_val = *(volatile int *)NULL;
+      int null_val = *(volatile int*)NULL;
       msg("I dereferenced null! It's value is %d", null_val);
     }
 

@@ -4,7 +4,7 @@
 #define ARRAY_SIZE 1024
 #define DIM_SIZE 32
 
-static int verifyDouble(int n, const volatile short *test, const short *verify);
+static int verifyDouble(int n, const volatile short* test, const short* verify);
 
 static short input1_data[ARRAY_SIZE] = {
     0, 3, 2, 0, 3, 1, 0, 3, 2, 3, 2, 0, 3, 3, 1, 2, 3, 0, 0, 1, 1, 1, 2, 3, 1, 2, 3, 1, 1, 3, 2, 2,
@@ -128,7 +128,7 @@ static short verify_data[ARRAY_SIZE] = {
     69,  78, 48,  65,  88,  70,  70, 70,  69,  72,  96,  90,  99,  82,  81, 76, 98,  73,  74,  71,
     69,  73, 94,  89};
 
-static int verifyDouble(int n, const volatile short *test, const short *verify) {
+static int verifyDouble(int n, const volatile short* test, const short* verify) {
   int i;
   for (i = 0; i < n; i++) {
     short t0 = test[i], t1 = test[i + 1];

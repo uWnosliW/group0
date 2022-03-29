@@ -23,23 +23,23 @@ struct sleep_test {
 
   /* Output. */
   struct lock output_lock; /* Lock protecting output buffer. */
-  int *output_pos;         /* Current position in output buffer. */
+  int* output_pos;         /* Current position in output buffer. */
 };
 
 /* Information about an individual thread in the test. */
 struct sleep_thread {
-  struct sleep_test *test; /* Info shared between all threads. */
+  struct sleep_test* test; /* Info shared between all threads. */
   int id;                  /* Sleeper ID. */
   int duration;            /* Number of ticks to sleep. */
   int iterations;          /* Iterations counted so far. */
 };
 
-static void sleeper(void *);
+static void sleeper(void*);
 
 /* Runs THREAD_CNT threads thread sleep ITERATIONS times each. */
 static void test_sleep(int thread_cnt, int iterations) {
   struct sleep_test test;
-  struct sleep_thread *threads;
+  struct sleep_thread* threads;
   int *output, *op;
   int product;
   int i;
@@ -67,7 +67,7 @@ static void test_sleep(int thread_cnt, int iterations) {
   /* Start threads. */
   ASSERT(output != NULL);
   for (i = 0; i < thread_cnt; i++) {
-    struct sleep_thread *t = threads + i;
+    struct sleep_thread* t = threads + i;
     char name[16];
 
     t->test = &test;
@@ -89,7 +89,7 @@ static void test_sleep(int thread_cnt, int iterations) {
   /* Print completion order. */
   product = 0;
   for (op = output; op < test.output_pos; op++) {
-    struct sleep_thread *t;
+    struct sleep_thread* t;
     int new_prod;
 
     ASSERT(*op >= 0 && *op < thread_cnt);
@@ -117,9 +117,9 @@ static void test_sleep(int thread_cnt, int iterations) {
 }
 
 /* Sleeper thread. */
-static void sleeper(void *t_) {
-  struct sleep_thread *t = t_;
-  struct sleep_test *test = t->test;
+static void sleeper(void* t_) {
+  struct sleep_thread* t = t_;
+  struct sleep_test* test = t->test;
   int i;
 
   for (i = 1; i <= test->iterations; i++) {

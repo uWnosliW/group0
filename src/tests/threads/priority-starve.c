@@ -28,12 +28,12 @@ void test_priority_starve(void) {
   msg("Thread %s done!", thread_name());
 }
 
-static void low_prio_thread_func(void *aux UNUSED) {
+static void low_prio_thread_func(void* aux UNUSED) {
   msg("The low-priority thread has been given a chance to run!");
   msg("Thread %s done!", thread_name());
 }
 
-static void medium_prio_thread_func(void *aux UNUSED) {
+static void medium_prio_thread_func(void* aux UNUSED) {
   volatile uint32_t state = 0xCCCCCCCC;
 
   msg("The medium-priority thread has been given a chance to run!");

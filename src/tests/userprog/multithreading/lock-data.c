@@ -10,11 +10,11 @@
 lock_t lock;
 int best_class;
 
-void thread_function(void *arg_);
+void thread_function(void* arg_);
 
 /* Each thread adds 1 to the shared data 27 times */
-void thread_function(void *arg_) {
-  int *arg = (int *)arg_;
+void thread_function(void* arg_) {
+  int* arg = (int*)arg_;
   for (int i = 0; i < 27; i++) {
     lock_acquire(&lock);
     (*arg)++;

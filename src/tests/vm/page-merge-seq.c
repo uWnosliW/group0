@@ -64,9 +64,9 @@ static void sort_chunks(void) {
 
 /* Merge the sorted chunks in buf1 into a fully sorted buf2. */
 static void merge(void) {
-  unsigned char *mp[CHUNK_CNT];
+  unsigned char* mp[CHUNK_CNT];
   size_t mp_left;
-  unsigned char *op;
+  unsigned char* op;
   size_t i;
 
   msg("merge");

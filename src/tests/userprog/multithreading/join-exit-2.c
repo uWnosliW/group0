@@ -10,11 +10,11 @@
 #include <syscall.h>
 #include <pthread.h>
 
-void thread_function(void *arg_);
+void thread_function(void* arg_);
 
 /* Thread function that tests exit conditions by exiting */
-void thread_function(void *arg_) {
-  int *main_tid = (int *)arg_;
+void thread_function(void* arg_) {
+  int* main_tid = (int*)arg_;
   msg("Thread starting");
   pthread_check_join(*main_tid);
   exit(162);

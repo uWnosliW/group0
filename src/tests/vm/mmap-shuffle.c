@@ -11,7 +11,7 @@
 
 #define SIZE (128 * 1024)
 
-static char *buf = (char *)0x10000000;
+static char* buf = (char*)0x10000000;
 
 void test_main(void) {
   size_t i;

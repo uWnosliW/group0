@@ -14,7 +14,7 @@
 void __attribute__((noinline)) matmul(const int tid, const int nthreads, const int lda,
                                       const short A[], const short B[], short C[]);
 void test_mt_matmul(size_t num_threads);
-void thread_entry(void *aux);
+void thread_entry(void* aux);
 
 static short results_data[ARRAY_SIZE];
 
@@ -35,8 +35,8 @@ void __attribute__((noinline)) matmul(const int tid, const int nthreads, const i
         C[i + j * lda] += A[j * lda + k] * B[k * lda + i];
 }
 
-void thread_entry(void *aux) {
-  struct thread_args *args = (struct thread_args *)aux;
+void thread_entry(void* aux) {
+  struct thread_args* args = (struct thread_args*)aux;
 
   matmul(args->tid, args->n_threads, DIM_SIZE, input1_data, input2_data, results_data);
 }
@@ -52,7 +52,7 @@ void test_mt_matmul(size_t num_threads) {
     args[i].tid = i;
     args[i].n_threads = num_threads;
 
-    thread_create("matmul", PRI_DEFAULT - 1, thread_entry, (void *)&args[i]);
+    thread_create("matmul", PRI_DEFAULT - 1, thread_entry, (void*)&args[i]);
   }
 
   /* Let other threads run to completion */

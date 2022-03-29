@@ -62,15 +62,15 @@ static void consume_some_resources(void) {
 static int NO_INLINE consume_some_resources_and_die(int seed) {
   consume_some_resources();
   random_init(seed);
-  volatile int *PHYS_BASE = (volatile int *)0xC0000000;
+  volatile int* PHYS_BASE = (volatile int*)0xC0000000;
 
   switch (random_ulong() % 5) {
     case 0:
-      *(volatile int *)NULL = 42;
+      *(volatile int*)NULL = 42;
       __attribute__((fallthrough));
 
     case 1:
-      return *(volatile int *)NULL;
+      return *(volatile int*)NULL;
 
     case 2:
       return *PHYS_BASE;
@@ -80,7 +80,7 @@ static int NO_INLINE consume_some_resources_and_die(int seed) {
       __attribute__((fallthrough));
 
     case 4:
-      open((char *)PHYS_BASE);
+      open((char*)PHYS_BASE);
       exit(-1);
 
     default:
@@ -98,7 +98,7 @@ static int NO_INLINE consume_some_resources_and_die(int seed) {
    Some children are started with the '-k' flag, which will
    result in abnormal termination.
  */
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
   int n;
 
   test_name = "multi-oom-mt";

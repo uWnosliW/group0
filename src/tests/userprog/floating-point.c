@@ -4,7 +4,7 @@
 #include "tests/lib.h"
 #include "tests/main.h"
 
-const char *test_name = "floating-point";
+const char* test_name = "floating-point";
 
 void test_main(void) {
   msg("Computing e...");

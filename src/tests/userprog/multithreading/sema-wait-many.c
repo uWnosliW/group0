@@ -16,11 +16,11 @@ int ready_threads;
 sema_t main_sema;
 sema_t thread_sema;
 
-void thread_function(void *arg_);
+void thread_function(void* arg_);
 
 /* Each thread downs thread_sema, grabs the global lock, increments
    ready_threads and wakes main safely */
-void thread_function(void *arg_ UNUSED) {
+void thread_function(void* arg_ UNUSED) {
   sema_down(&thread_sema);
   lock_acquire(&global_lock);
   msg("%d threads are now ready", ++ready_threads);

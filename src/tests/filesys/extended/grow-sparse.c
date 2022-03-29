@@ -8,7 +8,7 @@
 static char buf[76543];
 
 void test_main(void) {
-  const char *file_name = "testfile";
+  const char* file_name = "testfile";
   char zero = 0;
   int fd;
 

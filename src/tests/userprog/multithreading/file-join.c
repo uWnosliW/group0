@@ -18,15 +18,15 @@
 
 // Global variables
 char file_storage[512]; // Large enough to fit sample.txt
-char *sample_file = "sample.txt";
+char* sample_file = "sample.txt";
 lock_t count_lock;
 int num_finished;
 
-void file_io(void *arg_);
+void file_io(void* arg_);
 
 /* Argument is an FD. Read that file multiple times */
-void file_io(void *arg_) {
-  int *fd = (int *)arg_;
+void file_io(void* arg_) {
+  int* fd = (int*)arg_;
   for (int i = 0; i < FILE_CHECKS; i++)
     if (read(*fd, &file_storage, sizeof sample - 1) > 0)
       fail("Read bytes from used-up FD %d", *fd);

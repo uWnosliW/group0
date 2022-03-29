@@ -15,7 +15,7 @@ void test_main(void) {
   remove_tree(4, 3, 3, 4);
 }
 
-static void do_remove(const char *format, ...) PRINTF_FORMAT(1, 2);
+static void do_remove(const char* format, ...) PRINTF_FORMAT(1, 2);
 
 static void remove_tree(int at, int bt, int ct, int dt) {
   char try
@@ -41,7 +41,7 @@ static void remove_tree(int at, int bt, int ct, int dt) {
   CHECK(open(try) == -1, "open \"%s\" (must return -1)", try);
 }
 
-static void do_remove(const char *format, ...) {
+static void do_remove(const char* format, ...) {
   char name[128];
   va_list args;
 

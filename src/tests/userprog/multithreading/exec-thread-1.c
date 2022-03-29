@@ -14,18 +14,18 @@
 // Global variables
 sema_t hang_main;
 
-void thread_function(void *arg_);
+void thread_function(void* arg_);
 
 /* Informs main it started, waits until main finishes. */
-void thread_function(void *arg_) {
-  tid_t *main_tid = (tid_t *)arg_;
+void thread_function(void* arg_) {
+  tid_t* main_tid = (tid_t*)arg_;
   msg("Child thread starting");
   sema_up(&hang_main);
   pthread_check_join(*main_tid);
   msg("Child thread finishing");
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
   test_name = "exec-thread-1";
 
   if (argc != 2)

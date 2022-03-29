@@ -11,7 +11,7 @@
 void test_main(void) {
   int handle;
   int byte_cnt;
-  char *buffer;
+  char* buffer;
 
   CHECK((handle = open("sample.txt")) > 1, "open \"sample.txt\"");
 

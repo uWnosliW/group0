@@ -11,7 +11,7 @@
 void test_main(void) {
   int handle;
   int byte_cnt;
-  char *sample_p;
+  char* sample_p;
 
   sample_p = copy_string_across_boundary(sample);
 

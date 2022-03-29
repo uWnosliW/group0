@@ -8,8 +8,8 @@
 #include "tests/main.h"
 
 void test_main(void) {
-  char *p = get_bad_boundary() - 5;
-  *((int *)p) = SYS_EXEC;
+  char* p = get_bad_boundary() - 5;
+  *((int*)p) = SYS_EXEC;
   p[4] = '!';
 
   /* Invoke the system call. */
