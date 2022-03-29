@@ -36,9 +36,8 @@ static void syscall_handler(struct intr_frame *f UNUSED) {
   uint32_t *args = ((uint32_t *)f->esp);
 
   /* Check that args[0] is in user space and mapped */
-  if (!is_valid_buffer((void *)args, 4)) {
+  if (!is_valid_buffer((void *)args, 4))
     print_and_exit(f, -1);
-  }
 
   switch (args[0]) {
     case SYS_HALT: {
@@ -368,6 +367,115 @@ static void syscall_handler(struct intr_frame *f UNUSED) {
       /* Return args[1] + 1 */
       f->eax = args[1] + 1;
       break;
+    }
+
+    case SYS_PT_EXIT: {
+      PANIC("Syscall is not implemented");
+    }
+
+    case SYS_PT_JOIN: {
+      PANIC("Syscall is not implemented");
+    }
+
+    case SYS_LOCK_INIT: {
+      struct process *pcb = thread_current()->pcb;
+
+      if (pcb->num_locks == 128) {
+        f->eax = false;
+        break;
+      }
+
+      char *new_lock = (char *)args[1];
+      *new_lock = pcb->num_locks;
+
+      pcb->locks[pcb->num_locks] = malloc(sizeof(struct lock));
+      ASSERT(pcb->locks[pcb->num_locks] != NULL); // TODO: debug, remove when done
+      lock_init(pcb->locks[pcb->num_locks]);
+
+      pcb->num_locks++;
+      f->eax = true;
+      break;
+    }
+
+    case SYS_LOCK_ACQUIRE: {
+      int lock_num = *((int *)args[1]);
+      struct process *pcb = thread_current()->pcb;
+
+      if (pcb->locks[lock_num] == NULL) {
+        f->eax = false;
+        break;
+      }
+
+      lock_acquire(pcb->locks[lock_num]);
+      f->eax = true;
+      break;
+    }
+
+    case SYS_LOCK_RELEASE: {
+      int lock_num = *((int *)args[1]);
+      struct process *pcb = thread_current()->pcb;
+
+      if (pcb->locks[lock_num] == NULL) {
+        f->eax = false;
+        break;
+      }
+
+      lock_release(pcb->locks[lock_num]);
+      f->eax = true;
+      break;
+    }
+
+    case SYS_SEMA_INIT: {
+      struct process *pcb = thread_current()->pcb;
+
+      if (pcb->num_semas == 128) {
+        f->eax = false;
+        break;
+      }
+
+      int sema_val = *((int *)args[2]);
+      char *new_sema = (char *)args[1];
+      *new_sema = pcb->num_semas;
+
+      pcb->semaphores[pcb->num_semas] = malloc(sizeof(struct semaphore));
+      ASSERT(pcb->semaphores[pcb->num_semas] != NULL); // TODO: debug, remove when done
+      sema_init(pcb->semaphores[pcb->num_semas], sema_val);
+
+      pcb->num_semas++;
+      f->eax = true;
+      break;
+    }
+
+    case SYS_SEMA_DOWN: {
+      int sema_num = *((int *)args[1]);
+      struct process *pcb = thread_current()->pcb;
+
+      if (pcb->semaphores[sema_num] == NULL) {
+        f->eax = false;
+        break;
+      }
+
+      sema_down(pcb->semaphores[sema_num]);
+      f->eax = true;
+      break;
+    }
+
+    case SYS_SEMA_UP: {
+      int sema_num = *((int *)args[1]);
+      struct process *pcb = thread_current()->pcb;
+
+      if (pcb->semaphores[sema_num] == NULL) {
+        f->eax = false;
+        break;
+      }
+
+      sema_up(pcb->semaphores[sema_num]);
+      f->eax = true;
+      break;
+    }
+
+    case SYS_GET_TID: {
+      PANIC("Syscall is not implemented");
     }
 
     default: { PANIC("Syscall is not implemented"); }

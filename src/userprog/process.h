@@ -37,7 +37,13 @@ struct process {
   struct thread *main_thread;    /* Pointer to main thread */
   struct process_status *status; /* Status of the current thread */
   struct list child_processes;   /* List of process_status's of the children processes */
-  struct list fd_table;          /* List of fd_table_entry_ts, relevant in File syscalls */
+  struct list fd_table;          /* List of fd_table_entry_ts, relevant in file syscalls */
+
+  int num_locks;
+  int num_semas;
+  struct lock *locks[128];
+  struct semaphore *semaphores[128];
+
   struct file *executable;
 };
 

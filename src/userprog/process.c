@@ -218,6 +218,10 @@ static void start_process(void *args_) {
     /* Initialize the PCB's child process list and file descriptor table */
     list_init(&t->pcb->child_processes);
     list_init(&t->pcb->fd_table);
+
+    /* Initialize synchronization primitive ids */
+    t->pcb->num_locks = 0;
+    t->pcb->num_semas = 0;
   }
 
   /* Initialize interrupt frame and load executable. */
@@ -381,6 +385,16 @@ void process_exit(void) {
     file_close(fdt_entry->file);
     free(fdt_entry);
   }
+
+  /* Clean up synchronization primitives */
+  int num_locks = &curr_thread->pcb->num_locks;
+  int num_semas = &curr_thread->pcb->num_semas;
+
+  for (int i = 0; i < num_locks; i++)
+    free(&curr_thread->pcb->locks[i]);
+
+  for (int i = 0; i < num_semas; i++)
+    free(&curr_thread->pcb->locks[i]);
 
   /* Mark the child thread as dead */
   sema_up(&status->is_dead);
