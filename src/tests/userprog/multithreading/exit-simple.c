@@ -2,13 +2,13 @@
 
 #include "tests/lib.h"
 #include "tests/main.h"
-#include <debug.h>
 #include <pthread.h>
+#include <debug.h>
 
-void thread_function(void *arg);
+void thread_function(void* arg);
 
 /* Simple thread function that just prints PASS */
-void thread_function(void *arg UNUSED) {
+void thread_function(void* arg UNUSED) {
   msg("Thread ran.");
   pthread_exit();
   fail("Thread kept running?");

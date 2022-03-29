@@ -2,10 +2,10 @@
    and checks that the file's size is reported correctly at each
    step. */
 
+#include <syscall.h>
 #include "tests/filesys/seq-test.h"
 #include "tests/lib.h"
 #include "tests/main.h"
-#include <syscall.h>
 
 static char buf[2134];
 

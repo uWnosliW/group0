@@ -3,10 +3,10 @@
    sequence.  Then we merge the chunks and verify that the result
    is what it should be. */
 
+#include <syscall.h>
 #include "tests/arc4.h"
 #include "tests/lib.h"
 #include "tests/main.h"
-#include <syscall.h>
 
 /* This is the max file size for an older version of the Pintos
    file system that had 126 direct blocks each pointing to a
@@ -64,9 +64,9 @@ static void sort_chunks(void) {
 
 /* Merge the sorted chunks in buf1 into a fully sorted buf2. */
 static void merge(void) {
-  unsigned char *mp[CHUNK_CNT];
+  unsigned char* mp[CHUNK_CNT];
   size_t mp_left;
-  unsigned char *op;
+  unsigned char* op;
   size_t i;
 
   msg("merge");

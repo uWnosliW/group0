@@ -6,13 +6,13 @@
 #include <stddef.h>
 #include <syscall.h>
 
-extern const char *test_name;
+extern const char* test_name;
 extern bool quiet;
 extern bool syn_msg;
 
 void console_init(void);
-void msg(const char *, ...) PRINTF_FORMAT(1, 2);
-void fail(const char *, ...) PRINTF_FORMAT(1, 2) NO_RETURN;
+void msg(const char*, ...) PRINTF_FORMAT(1, 2);
+void fail(const char*, ...) PRINTF_FORMAT(1, 2) NO_RETURN;
 
 /* Takes an expression to test for SUCCESS and a message, which
    may include printf-style arguments.  Logs the message, then
@@ -35,23 +35,23 @@ void fail(const char *, ...) PRINTF_FORMAT(1, 2) NO_RETURN;
       fail(__VA_ARGS__);                                                                           \
   } while (0)
 
-void push_values_to_fpu(int *values, int n);
-bool pop_values_from_fpu(int *values, int n);
+void push_values_to_fpu(int* values, int n);
+bool pop_values_from_fpu(int* values, int n);
 
-void lock_check_init(lock_t *lock);
-void sema_check_init(sema_t *sema, int val);
+void lock_check_init(lock_t* lock);
+void sema_check_init(sema_t* sema, int val);
 void pthread_check_join(tid_t tid);
-tid_t pthread_check_create(pthread_fun fun, void *arg);
+tid_t pthread_check_create(pthread_fun fun, void* arg);
 
-void shuffle(void *, size_t cnt, size_t size);
+void shuffle(void*, size_t cnt, size_t size);
 
-void exec_children(const char *child_name, pid_t pids[], size_t child_cnt);
+void exec_children(const char* child_name, pid_t pids[], size_t child_cnt);
 void wait_children(pid_t pids[], size_t child_cnt);
 
-void check_file_handle(int fd, const char *file_name, const void *buf_, size_t filesize);
-void check_file(const char *file_name, const void *buf, size_t filesize);
+void check_file_handle(int fd, const char* file_name, const void* buf_, size_t filesize);
+void check_file(const char* file_name, const void* buf, size_t filesize);
 
-void compare_bytes(const void *read_data, const void *expected_data, size_t size, size_t ofs,
-                   const char *file_name);
+void compare_bytes(const void* read_data, const void* expected_data, size_t size, size_t ofs,
+                   const char* file_name);
 
 #endif /* test/lib.h */

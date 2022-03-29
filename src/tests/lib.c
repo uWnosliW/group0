@@ -1,20 +1,20 @@
 #include "tests/lib.h"
 #include <float.h>
-#include <pthread.h>
 #include <random.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
 #include <syscall.h>
+#include <pthread.h>
 
 static lock_t console_lock;
-const char *test_name;
+const char* test_name;
 bool quiet = false;
 bool syn_msg = false;
 
 void console_init() { lock_check_init(&console_lock); }
 
-static void vmsg(const char *format, va_list args, const char *suffix) {
+static void vmsg(const char* format, va_list args, const char* suffix) {
   /* We go to some trouble to stuff the entire message into a
      single buffer and output it in a single system call, because
      that'll (typically) ensure that it gets sent to the console
@@ -28,7 +28,7 @@ static void vmsg(const char *format, va_list args, const char *suffix) {
   write(STDOUT_FILENO, buf, strlen(buf));
 }
 
-void msg(const char *format, ...) {
+void msg(const char* format, ...) {
   va_list args;
 
   if (quiet)
@@ -42,7 +42,7 @@ void msg(const char *format, ...) {
     lock_release(&console_lock);
 }
 
-void fail(const char *format, ...) {
+void fail(const char* format, ...) {
   va_list args;
 
   va_start(args, format);
@@ -52,9 +52,9 @@ void fail(const char *format, ...) {
   exit(1);
 }
 
-static void swap(void *a_, void *b_, size_t size) {
-  uint8_t *a = a_;
-  uint8_t *b = b_;
+static void swap(void* a_, void* b_, size_t size) {
+  uint8_t* a = a_;
+  uint8_t* b = b_;
   size_t i;
 
   for (i = 0; i < size; i++) {
@@ -65,14 +65,14 @@ static void swap(void *a_, void *b_, size_t size) {
 }
 
 /* Pushes hardcoded values to the FPU */
-void push_values_to_fpu(int *values, int n) {
+void push_values_to_fpu(int* values, int n) {
   for (int i = 0; i < n; i++) {
     fpu_push(values[i]);
   }
 }
 
 /* Pops hardcoded values from FPU and returns if the values are correct */
-bool pop_values_from_fpu(int *values, int n) {
+bool pop_values_from_fpu(int* values, int n) {
   for (int i = n - 1; i >= 0; i--) {
     if (values[i] != fpu_pop())
       return false;
@@ -81,13 +81,13 @@ bool pop_values_from_fpu(int *values, int n) {
 }
 
 /* Initializes a lock and checks return value */
-void lock_check_init(lock_t *lock) {
+void lock_check_init(lock_t* lock) {
   if (!lock_init(lock))
     exit(1);
 }
 
 /* Initializes a semaphore and checks return value */
-void sema_check_init(sema_t *sema, int val) {
+void sema_check_init(sema_t* sema, int val) {
   if (!sema_init(sema, val))
     exit(1);
 }
@@ -99,15 +99,15 @@ void pthread_check_join(tid_t tid) {
 }
 
 /* Creates a thread and checks return value */
-tid_t pthread_check_create(pthread_fun fun, void *arg) {
+tid_t pthread_check_create(pthread_fun fun, void* arg) {
   tid_t tid = pthread_create(fun, arg);
   if (tid == TID_ERROR)
     exit(1);
   return tid;
 }
 
-void shuffle(void *buf_, size_t cnt, size_t size) {
-  char *buf = buf_;
+void shuffle(void* buf_, size_t cnt, size_t size) {
+  char* buf = buf_;
   size_t i;
 
   for (i = 0; i < cnt; i++) {
@@ -116,7 +116,7 @@ void shuffle(void *buf_, size_t cnt, size_t size) {
   }
 }
 
-void exec_children(const char *child_name, pid_t pids[], size_t child_cnt) {
+void exec_children(const char* child_name, pid_t pids[], size_t child_cnt) {
   size_t i;
 
   for (i = 0; i < child_cnt; i++) {
@@ -137,8 +137,8 @@ void wait_children(pid_t pids[], size_t child_cnt) {
   }
 }
 
-void check_file_handle(int fd, const char *file_name, const void *buf_, size_t size) {
-  const char *buf = buf_;
+void check_file_handle(int fd, const char* file_name, const void* buf_, size_t size) {
+  const char* buf = buf_;
   size_t ofs = 0;
   size_t file_size;
 
@@ -174,7 +174,7 @@ void check_file_handle(int fd, const char *file_name, const void *buf_, size_t s
   msg("verified contents of \"%s\"", file_name);
 }
 
-void check_file(const char *file_name, const void *buf, size_t size) {
+void check_file(const char* file_name, const void* buf, size_t size) {
   int fd;
 
   CHECK((fd = open(file_name)) > 1, "open \"%s\" for verification", file_name);
@@ -183,10 +183,10 @@ void check_file(const char *file_name, const void *buf, size_t size) {
   close(fd);
 }
 
-void compare_bytes(const void *read_data_, const void *expected_data_, size_t size, size_t ofs,
-                   const char *file_name) {
-  const uint8_t *read_data = read_data_;
-  const uint8_t *expected_data = expected_data_;
+void compare_bytes(const void* read_data_, const void* expected_data_, size_t size, size_t ofs,
+                   const char* file_name) {
+  const uint8_t* read_data = read_data_;
+  const uint8_t* expected_data = expected_data_;
   size_t i, j;
   size_t show_cnt;
 

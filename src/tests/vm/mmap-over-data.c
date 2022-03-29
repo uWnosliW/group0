@@ -1,10 +1,10 @@
 /* Verifies that mapping over the data segment is disallowed. */
 
+#include <stdint.h>
+#include <round.h>
+#include <syscall.h>
 #include "tests/lib.h"
 #include "tests/main.h"
-#include <round.h>
-#include <stdint.h>
-#include <syscall.h>
 
 static char x;
 
@@ -13,5 +13,5 @@ void test_main(void) {
   int handle;
 
   CHECK((handle = open("sample.txt")) > 1, "open \"sample.txt\"");
-  CHECK(mmap(handle, (void *)x_page) == MAP_FAILED, "try to mmap over data segment");
+  CHECK(mmap(handle, (void*)x_page) == MAP_FAILED, "try to mmap over data segment");
 }

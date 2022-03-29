@@ -4,11 +4,11 @@
    verify that the result is what it should be. */
 
 #include "tests/vm/parallel-merge.h"
+#include <stdio.h>
+#include <syscall.h>
 #include "tests/arc4.h"
 #include "tests/lib.h"
 #include "tests/main.h"
-#include <stdio.h>
-#include <syscall.h>
 
 #define CHUNK_SIZE (128 * 1024)
 #define CHUNK_CNT 8                        /* Number of chunks. */
@@ -33,7 +33,7 @@ static void init(void) {
 
 /* Sort each chunk of buf1 using SUBPROCESS,
    which is expected to return EXIT_STATUS. */
-static void sort_chunks(const char *subprocess, int exit_status) {
+static void sort_chunks(const char* subprocess, int exit_status) {
   pid_t children[CHUNK_CNT];
   size_t i;
 
@@ -76,9 +76,9 @@ static void sort_chunks(const char *subprocess, int exit_status) {
 
 /* Merge the sorted chunks in buf1 into a fully sorted buf2. */
 static void merge(void) {
-  unsigned char *mp[CHUNK_CNT];
+  unsigned char* mp[CHUNK_CNT];
   size_t mp_left;
-  unsigned char *op;
+  unsigned char* op;
   size_t i;
 
   msg("merge");
@@ -125,7 +125,7 @@ static void verify(void) {
   msg("success, buf_idx=%'zu", buf_idx);
 }
 
-void parallel_merge(const char *child_name, int exit_status) {
+void parallel_merge(const char* child_name, int exit_status) {
   init();
   sort_chunks(child_name, exit_status);
   merge();

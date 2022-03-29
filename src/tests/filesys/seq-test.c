@@ -1,9 +1,9 @@
 #include "tests/filesys/seq-test.h"
-#include "tests/lib.h"
 #include <random.h>
 #include <syscall.h>
+#include "tests/lib.h"
 
-void seq_test(const char *file_name, void *buf, size_t size, size_t initial_size,
+void seq_test(const char* file_name, void* buf, size_t size, size_t initial_size,
               size_t (*block_size_func)(void), void (*check_func)(int fd, long ofs)) {
   size_t ofs;
   int fd;

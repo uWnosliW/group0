@@ -16,7 +16,7 @@
 /* Global file operation lock (to be removed later) */
 static lock_t global_file_lock;
 
-static void syscall_handler(struct intr_frame *);
+static void syscall_handler(struct intr_frame*);
 
 void syscall_init(void) {
   lock_init(&global_file_lock);
@@ -25,19 +25,23 @@ void syscall_init(void) {
 
 /* print_and_exit - Helper method that sets the return value in the interrupt frame, prints the exit
  * message, and exits */
-void print_and_exit(struct intr_frame *f, int exit_code) {
+void print_and_exit(struct intr_frame* f, int exit_code) {
   printf("%s: exit(%d)\n", thread_current()->pcb->process_name, exit_code);
   f->eax = exit_code;
   thread_current()->pcb->status->exit_code = exit_code;
   process_exit();
 }
 
-static void syscall_handler(struct intr_frame *f UNUSED) {
-  uint32_t *args = ((uint32_t *)f->esp);
+static void syscall_handler(struct intr_frame* f UNUSED) {
+  uint32_t* args = ((uint32_t*)f->esp);
 
   /* Check that args[0] is in user space and mapped */
-  if (!is_valid_buffer((void *)args, 4))
+  if (!is_valid_buffer((void*)args, 4))
     print_and_exit(f, -1);
+
+  /* Grab pcb lock */
+  struct lock* pcb_lock_ptr = &thread_current()->pcb->pcb_lock;
+  lock_acquire(pcb_lock_ptr);
 
   switch (args[0]) {
     case SYS_HALT: {
@@ -47,7 +51,7 @@ static void syscall_handler(struct intr_frame *f UNUSED) {
 
     case SYS_EXIT: {
       /* Verify args[1] is in user space and mapped, else exit(-1) */
-      if (!is_valid_buffer((void *)&args[1], 4)) {
+      if (!is_valid_buffer((void*)&args[1], 4)) {
         print_and_exit(f, -1);
       }
 
@@ -58,14 +62,14 @@ static void syscall_handler(struct intr_frame *f UNUSED) {
 
     case SYS_EXEC: {
       /* Verify args[1] and the string it points to are in user space and mapped, else exit(-1) */
-      if (!is_valid_buffer((void *)&args[1], 4) || !is_valid_string((char *)args[1])) {
+      if (!is_valid_buffer((void*)&args[1], 4) || !is_valid_string((char*)args[1])) {
         print_and_exit(f, -1);
         break;
       }
 
       /* Execute the executable in args[1], setting the return code to -1 on error or the PID of the
        * child if successful */
-      pid_t child_pid = process_execute((char *)args[1]);
+      pid_t child_pid = process_execute((char*)args[1]);
       if (child_pid == TID_ERROR) {
         f->eax = -1;
       }
@@ -75,7 +79,7 @@ static void syscall_handler(struct intr_frame *f UNUSED) {
 
     case SYS_WAIT: {
       /* Verify args[1] and the string it points to are in user space and mapped, else exit(-1) */
-      if (!is_valid_buffer((void *)&args[1], 4)) {
+      if (!is_valid_buffer((void*)&args[1], 4)) {
         print_and_exit(f, -1);
         break;
       }
@@ -89,13 +93,13 @@ static void syscall_handler(struct intr_frame *f UNUSED) {
       lock_acquire(&global_file_lock); /* Acquire lock */
 
       /* Verify that the string passed in is valid, exit(-1) if not */
-      if (!is_valid_string((char *)args[1])) {
+      if (!is_valid_string((char*)args[1])) {
         lock_release(&global_file_lock); /* Release lock */
         print_and_exit(f, -1);
       }
 
       /* Return the result of filesys_create with the arguments passed in */
-      f->eax = filesys_create((char *)args[1], args[2]);
+      f->eax = filesys_create((char*)args[1], args[2]);
 
       lock_release(&global_file_lock); /* Release lock */
       break;
@@ -105,13 +109,13 @@ static void syscall_handler(struct intr_frame *f UNUSED) {
       lock_acquire(&global_file_lock); /* Acquire lock */
 
       /* Verify that the string passed in is valid, exit(-1) if not */
-      if (!is_valid_string((char *)args[1])) {
+      if (!is_valid_string((char*)args[1])) {
         lock_release(&global_file_lock); /* Release lock */
         print_and_exit(f, -1);
       }
 
       /* Return the result of filesys_remove with the arguments passed in */
-      f->eax = filesys_remove((char *)args[1]);
+      f->eax = filesys_remove((char*)args[1]);
 
       lock_release(&global_file_lock); /* Release lock */
       break;
@@ -121,20 +125,20 @@ static void syscall_handler(struct intr_frame *f UNUSED) {
       lock_acquire(&global_file_lock); /* Acquire lock */
 
       /* Verify that the string passed in is valid, exit(-1) if not */
-      if (!is_valid_string((char *)args[1])) {
+      if (!is_valid_string((char*)args[1])) {
         lock_release(&global_file_lock); /* Release lock */
         print_and_exit(f, -1);
       }
 
       /* Try opening the file with name args[1] */
-      struct file *file_ptr = filesys_open((char *)args[1]);
+      struct file* file_ptr = filesys_open((char*)args[1]);
 
       if (file_ptr == NULL) {
         f->eax = -1; /* Set return code to -1 if unsuccessful */
       } else {
         /* Iterate through the file descriptor table to find the first open file descriptor id */
-        struct list *fd_table_ptr = &thread_current()->pcb->fd_table;
-        struct fd_table_entry *curr_fd;
+        struct list* fd_table_ptr = &thread_current()->pcb->fd_table;
+        struct fd_table_entry* curr_fd;
         uint32_t fd_num = 2;
 
         struct list_elem *prev = list_head(fd_table_ptr), *curr;
@@ -150,7 +154,7 @@ static void syscall_handler(struct intr_frame *f UNUSED) {
 
         /* Create a new file descriptor for the current file and insert it into the proper location
          * in the list */
-        struct fd_table_entry *new_fd = malloc(sizeof(struct fd_table_entry));
+        struct fd_table_entry* new_fd = malloc(sizeof(struct fd_table_entry));
         new_fd->elem.prev = prev;
         new_fd->elem.next = curr;
         new_fd->fd = fd_num;
@@ -170,7 +174,7 @@ static void syscall_handler(struct intr_frame *f UNUSED) {
       lock_acquire(&global_file_lock); /* Acquire lock */
 
       /* Try getting the file descriptor with id args[1] */
-      struct fd_table_entry *fdt_entry = get_fd_table_entry(args[1]);
+      struct fd_table_entry* fdt_entry = get_fd_table_entry(args[1]);
 
       /* If not found, return -1, else return the result of file_length on the file descriptor's
        * file */
@@ -192,7 +196,7 @@ static void syscall_handler(struct intr_frame *f UNUSED) {
 
         /* In the special case of reading from stdin, call input_getc and populate the buffer at
          * args[2] until we've read enough bytes and return the amount of bytes we've read */
-        char *casted_buffer = (char *)args[2];
+        char* casted_buffer = (char*)args[2];
         size_t bytes_to_read = args[3], bytes_read = 0;
 
         uint8_t c;
@@ -207,20 +211,20 @@ static void syscall_handler(struct intr_frame *f UNUSED) {
       }
 
       /* If our buffer is not entirely in user memory and fully mapped, exit(-1) */
-      if (!is_valid_buffer((void *)args[2], args[3])) {
+      if (!is_valid_buffer((void*)args[2], args[3])) {
         lock_release(&global_file_lock); /* Release lock */
         print_and_exit(f, -1);
       }
 
       /* Try getting the file descriptor with id args[1] */
-      struct fd_table_entry *fdt_entry = get_fd_table_entry(args[1]);
+      struct fd_table_entry* fdt_entry = get_fd_table_entry(args[1]);
 
       /* If not found, return -1, else return the result of file_read on the file descriptor's file
        */
       if (fdt_entry == NULL) {
         f->eax = -1;
       } else {
-        f->eax = file_read(fdt_entry->file, (void *)args[2], (off_t)args[3]);
+        f->eax = file_read(fdt_entry->file, (void*)args[2], (off_t)args[3]);
       }
 
       lock_release(&global_file_lock); /* Release lock */
@@ -231,7 +235,7 @@ static void syscall_handler(struct intr_frame *f UNUSED) {
       lock_acquire(&global_file_lock); /* Acquire lock */
 
       /* If our buffer is not entirely in user memory and fully mapped, exit(-1) */
-      if (!is_valid_buffer((void *)args[2], args[3])) {
+      if (!is_valid_buffer((void*)args[2], args[3])) {
         lock_release(&global_file_lock); /* Release lock */
         print_and_exit(f, -1);
       }
@@ -242,7 +246,7 @@ static void syscall_handler(struct intr_frame *f UNUSED) {
         /* In the special case of reading from stdin, call putbuf and populate the buffer at args[2]
          * min(bytes_left, 256) bytes at a time until we've written enough bytes and return the
          * amount of bytes we've read */
-        char *buffer = (char *)args[2];
+        char* buffer = (char*)args[2];
         size_t bytes_left = args[3];
 
         while (bytes_left > 0) {
@@ -260,7 +264,7 @@ static void syscall_handler(struct intr_frame *f UNUSED) {
         break;
       }
 
-      struct fd_table_entry *fdt_entry = get_fd_table_entry(args[1]);
+      struct fd_table_entry* fdt_entry = get_fd_table_entry(args[1]);
 
       if (fdt_entry == NULL) {
         f->eax = -1; /* If file descriptor not found, return -1 */
@@ -269,7 +273,7 @@ static void syscall_handler(struct intr_frame *f UNUSED) {
          * args[2] into it */
         char *original_buffer, *buffer;
         original_buffer = buffer = calloc(sizeof(char), args[3]);
-        memcpy(buffer, (char *)args[2], args[3]);
+        memcpy(buffer, (char*)args[2], args[3]);
 
         /* Read from fdt_entry->file and populate the buffer at args[2] min(bytes_left, 256) bytes
          * at a time until we've written enough bytes and return the amount of bytes we've read */
@@ -307,7 +311,7 @@ static void syscall_handler(struct intr_frame *f UNUSED) {
       lock_acquire(&global_file_lock); /* Acquire lock */
 
       /* Try getting the file descriptor with id args[1] */
-      struct fd_table_entry *fdt_entry = get_fd_table_entry(args[1]);
+      struct fd_table_entry* fdt_entry = get_fd_table_entry(args[1]);
 
       /* If found, change file descriptor's file's position to args[2] */
       if (fdt_entry != NULL) {
@@ -322,7 +326,7 @@ static void syscall_handler(struct intr_frame *f UNUSED) {
       lock_acquire(&global_file_lock); /* Acquire lock */
 
       /* Try getting the file descriptor with id args[1] */
-      struct fd_table_entry *fdt_entry = get_fd_table_entry(args[1]);
+      struct fd_table_entry* fdt_entry = get_fd_table_entry(args[1]);
 
       /* If not found, return -1, else return the result of file_tell on the file descriptor's file
        */
@@ -340,7 +344,7 @@ static void syscall_handler(struct intr_frame *f UNUSED) {
       lock_acquire(&global_file_lock); /* Acquire lock */
 
       /* Try getting the file descriptor with id args[1] */
-      struct fd_table_entry *fdt_entry = get_fd_table_entry(args[1]);
+      struct fd_table_entry* fdt_entry = get_fd_table_entry(args[1]);
 
       /* If not found exit(-1) */
       if (fdt_entry == NULL) {
@@ -378,14 +382,14 @@ static void syscall_handler(struct intr_frame *f UNUSED) {
     }
 
     case SYS_LOCK_INIT: {
-      struct process *pcb = thread_current()->pcb;
+      struct process* pcb = thread_current()->pcb;
 
       if (pcb->num_locks == 128 || args[1] == 0) {
         f->eax = false;
         break;
       }
 
-      char *new_lock = (char *)args[1];
+      char* new_lock = (char*)args[1];
       *new_lock = pcb->num_locks;
 
       pcb->locks[pcb->num_locks] = malloc(sizeof(struct lock));
@@ -398,8 +402,8 @@ static void syscall_handler(struct intr_frame *f UNUSED) {
     }
 
     case SYS_LOCK_ACQUIRE: {
-      int lock_num = *((int *)args[1]);
-      struct process *pcb = thread_current()->pcb;
+      int lock_num = *((char*)args[1]);
+      struct process* pcb = thread_current()->pcb;
 
       if (pcb->locks[lock_num] == NULL) {
         f->eax = false;
@@ -417,8 +421,8 @@ static void syscall_handler(struct intr_frame *f UNUSED) {
     }
 
     case SYS_LOCK_RELEASE: {
-      int lock_num = *((int *)args[1]);
-      struct process *pcb = thread_current()->pcb;
+      int lock_num = *((char*)args[1]);
+      struct process* pcb = thread_current()->pcb;
 
       if (pcb->locks[lock_num] == NULL) {
         f->eax = false;
@@ -436,7 +440,7 @@ static void syscall_handler(struct intr_frame *f UNUSED) {
     }
 
     case SYS_SEMA_INIT: {
-      struct process *pcb = thread_current()->pcb;
+      struct process* pcb = thread_current()->pcb;
 
       /* Too many semas or trying to initialize NULL sema or value was negative */
       if (pcb->num_semas == 128 || args[1] == 0 || (int)args[2] < 0) {
@@ -444,7 +448,7 @@ static void syscall_handler(struct intr_frame *f UNUSED) {
         break;
       }
 
-      char *new_sema = (char *)args[1];
+      char* new_sema = (char*)args[1];
       *new_sema = pcb->num_semas;
 
       pcb->semaphores[pcb->num_semas] = malloc(sizeof(struct semaphore));
@@ -457,8 +461,8 @@ static void syscall_handler(struct intr_frame *f UNUSED) {
     }
 
     case SYS_SEMA_DOWN: {
-      int sema_num = *((int *)args[1]);
-      struct process *pcb = thread_current()->pcb;
+      int sema_num = *((int*)args[1]);
+      struct process* pcb = thread_current()->pcb;
 
       if (pcb->semaphores[sema_num] == NULL) {
         f->eax = false;
@@ -471,8 +475,8 @@ static void syscall_handler(struct intr_frame *f UNUSED) {
     }
 
     case SYS_SEMA_UP: {
-      int sema_num = *((int *)args[1]);
-      struct process *pcb = thread_current()->pcb;
+      int sema_num = *((int*)args[1]);
+      struct process* pcb = thread_current()->pcb;
 
       if (pcb->semaphores[sema_num] == NULL) {
         f->eax = false;
@@ -490,4 +494,6 @@ static void syscall_handler(struct intr_frame *f UNUSED) {
 
     default: { PANIC("Syscall is not implemented"); }
   }
+
+  lock_release(pcb_lock_ptr);
 }

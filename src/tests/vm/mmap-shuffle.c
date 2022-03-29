@@ -1,17 +1,17 @@
 /* Creates a 128 kB file and repeatedly shuffles data in it
    through a memory mapping. */
 
+#include <stdio.h>
+#include <string.h>
+#include <syscall.h>
 #include "tests/arc4.h"
 #include "tests/cksum.h"
 #include "tests/lib.h"
 #include "tests/main.h"
-#include <stdio.h>
-#include <string.h>
-#include <syscall.h>
 
 #define SIZE (128 * 1024)
 
-static char *buf = (char *)0x10000000;
+static char* buf = (char*)0x10000000;
 
 void test_main(void) {
   size_t i;

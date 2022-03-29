@@ -1,17 +1,17 @@
 /* Writes data spanning two pages in virtual address space,
    which must succeed. */
 
-#include "tests/lib.h"
-#include "tests/main.h"
-#include "tests/userprog/boundary.h"
-#include "tests/userprog/sample.inc"
 #include <string.h>
 #include <syscall.h>
+#include "tests/userprog/boundary.h"
+#include "tests/userprog/sample.inc"
+#include "tests/lib.h"
+#include "tests/main.h"
 
 void test_main(void) {
   int handle;
   int byte_cnt;
-  char *sample_p;
+  char* sample_p;
 
   sample_p = copy_string_across_boundary(sample);
 

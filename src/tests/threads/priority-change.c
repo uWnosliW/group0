@@ -2,10 +2,10 @@
    longer the highest-priority thread in the system causes it to
    yield immediately. */
 
+#include <stdio.h>
 #include "tests/threads/tests.h"
 #include "threads/init.h"
 #include "threads/thread.h"
-#include <stdio.h>
 
 static thread_func changing_thread;
 
@@ -20,7 +20,7 @@ void test_priority_change(void) {
   msg("Thread 2 should have just exited.");
 }
 
-static void changing_thread(void *aux UNUSED) {
+static void changing_thread(void* aux UNUSED) {
   msg("Thread 2 now lowering priority.");
   thread_set_priority(PRI_DEFAULT - 1);
   msg("Thread 2 exiting.");

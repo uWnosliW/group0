@@ -1,12 +1,12 @@
 /* Library function for creating a tree of directories. */
 
-#include "tests/filesys/extended/mk-tree.h"
-#include "tests/lib.h"
 #include <stdio.h>
 #include <syscall.h>
+#include "tests/filesys/extended/mk-tree.h"
+#include "tests/lib.h"
 
-static void do_mkdir(const char *format, ...) PRINTF_FORMAT(1, 2);
-static void do_touch(const char *format, ...) PRINTF_FORMAT(1, 2);
+static void do_mkdir(const char* format, ...) PRINTF_FORMAT(1, 2);
+static void do_touch(const char* format, ...) PRINTF_FORMAT(1, 2);
 
 void make_tree(int at, int bt, int ct, int dt) {
   char try
@@ -35,7 +35,7 @@ void make_tree(int at, int bt, int ct, int dt) {
   close(fd);
 }
 
-static void do_mkdir(const char *format, ...) {
+static void do_mkdir(const char* format, ...) {
   char dir[128];
   va_list args;
 
@@ -46,7 +46,7 @@ static void do_mkdir(const char *format, ...) {
   CHECK(mkdir(dir), "mkdir \"%s\"", dir);
 }
 
-static void do_touch(const char *format, ...) {
+static void do_touch(const char* format, ...) {
   char file[128];
   va_list args;
 

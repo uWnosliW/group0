@@ -1,7 +1,7 @@
 /* crctab[] and cksum() are from the `cksum' entry in SUSv3. */
 
-#include "tests/cksum.h"
 #include <stdint.h>
+#include "tests/cksum.h"
 
 static unsigned long crctab[] = {
     0x00000000, 0x04c11db7, 0x09823b6e, 0x0d4326d9, 0x130476dc, 0x17c56b6b, 0x1a864db2, 0x1e475005,
@@ -38,8 +38,8 @@ static unsigned long crctab[] = {
     0xafb010b1, 0xab710d06, 0xa6322bdf, 0xa2f33668, 0xbcb4666d, 0xb8757bda, 0xb5365d03, 0xb1f740b4};
 
 /* This is the algorithm used by the Posix `cksum' utility. */
-unsigned long cksum(const void *b_, size_t n) {
-  const unsigned char *b = b_;
+unsigned long cksum(const void* b_, size_t n) {
+  const unsigned char* b = b_;
   uint32_t s = 0;
   size_t i;
   for (i = n; i > 0; --i) {

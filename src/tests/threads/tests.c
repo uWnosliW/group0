@@ -1,7 +1,7 @@
 #include "tests/threads/tests.h"
+#include <test-lib.h>
 #include <debug.h>
 #include <string.h>
-#include <test-lib.h>
 
 static const struct test threads_tests[] = {
     {"alarm-single", test_alarm_single},
@@ -53,8 +53,8 @@ static const struct test threads_tests[] = {
     {"smfs-hierarchy-256", test_smfs_hierarchy_256}};
 
 /* Runs the threads test named NAME. */
-void run_threads_test(const char *name) {
-  const struct test *t;
+void run_threads_test(const char* name) {
+  const struct test* t;
 
   for (t = threads_tests; t < threads_tests + sizeof threads_tests / sizeof *threads_tests; t++)
     if (!strcmp(name, t->name)) {

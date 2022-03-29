@@ -1,8 +1,8 @@
 /* Verifies that memory mappings at address 0 are disallowed. */
 
+#include <syscall.h>
 #include "tests/lib.h"
 #include "tests/main.h"
-#include <syscall.h>
 
 void test_main(void) {
   int handle;

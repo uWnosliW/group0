@@ -10,11 +10,11 @@
 
    Written by Godmar Back <gback@cs.vt.edu>. */
 
+#include <stdio.h>
 #include "tests/threads/tests.h"
 #include "threads/init.h"
 #include "threads/synch.h"
 #include "threads/thread.h"
-#include <stdio.h>
 
 struct lock_and_sema {
   struct lock lock;
@@ -43,8 +43,8 @@ void test_priority_donate_sema(void) {
   msg("Main thread finished.");
 }
 
-static void l_thread_func(void *ls_) {
-  struct lock_and_sema *ls = ls_;
+static void l_thread_func(void* ls_) {
+  struct lock_and_sema* ls = ls_;
 
   lock_acquire(&ls->lock);
   msg("Thread L acquired lock.");
@@ -54,15 +54,15 @@ static void l_thread_func(void *ls_) {
   msg("Thread L finished.");
 }
 
-static void m_thread_func(void *ls_) {
-  struct lock_and_sema *ls = ls_;
+static void m_thread_func(void* ls_) {
+  struct lock_and_sema* ls = ls_;
 
   sema_down(&ls->sema);
   msg("Thread M finished.");
 }
 
-static void h_thread_func(void *ls_) {
-  struct lock_and_sema *ls = ls_;
+static void h_thread_func(void* ls_) {
+  struct lock_and_sema* ls = ls_;
 
   lock_acquire(&ls->lock);
   msg("Thread H acquired lock.");

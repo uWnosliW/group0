@@ -2,9 +2,9 @@
    which must either fail silently or terminate the process with
    exit code -1. */
 
-#include "tests/main.h"
 #include <limits.h>
 #include <syscall.h>
+#include "tests/main.h"
 
 void test_main(void) {
   char buf = 123;

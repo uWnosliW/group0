@@ -4,18 +4,18 @@
    run and then finishes itself. */
 
 #include "tests/lib.h"
-#include <pthread.h>
 #include <string.h>
 #include <syscall.h>
+#include <pthread.h>
 
 #define NUM_THREADS 10
 
-void thread_function(void *arg_);
+void thread_function(void* arg_);
 
 /* Simple thread function */
-void thread_function(void *arg_ UNUSED) { msg("Child thread ran"); }
+void thread_function(void* arg_ UNUSED) { msg("Child thread ran"); }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
   test_name = "exec-thread-n";
 
   if (argc != 2)

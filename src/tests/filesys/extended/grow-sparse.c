@@ -1,14 +1,14 @@
 /* Tests that seeking past the end of a file and writing will
    properly zero out the region in between. */
 
+#include <syscall.h>
 #include "tests/lib.h"
 #include "tests/main.h"
-#include <syscall.h>
 
 static char buf[76543];
 
 void test_main(void) {
-  const char *file_name = "testfile";
+  const char* file_name = "testfile";
   char zero = 0;
   int fd;
 

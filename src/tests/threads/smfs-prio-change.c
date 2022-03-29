@@ -3,12 +3,12 @@
    requires that it yield immediately! It should, however,
    be pre-empted eventually. */
 
-#include "devices/timer.h"
+#include <stdio.h>
 #include "tests/threads/tests.h"
 #include "threads/init.h"
 #include "threads/synch.h"
 #include "threads/thread.h"
-#include <stdio.h>
+#include "devices/timer.h"
 
 static thread_func alice_thread;
 static thread_func bob_thread;
@@ -36,7 +36,7 @@ void test_smfs_prio_change(void) {
   msg("Thread %s exiting.", thread_name());
 }
 
-static void alice_thread(void *aux UNUSED) {
+static void alice_thread(void* aux UNUSED) {
   sema_down(&alice_sema);
   msg("Thread %s woke up.", thread_name());
 
@@ -46,7 +46,7 @@ static void alice_thread(void *aux UNUSED) {
   thread_set_priority(PRI_MIN);
 }
 
-static void bob_thread(void *aux UNUSED) {
+static void bob_thread(void* aux UNUSED) {
   sema_down(&bob_sema);
   msg("Thread %s woke up.", thread_name());
 }

@@ -86,11 +86,16 @@ struct thread {
   tid_t tid;                 /* Thread identifier. */
   enum thread_status status; /* Thread state. */
   char name[16];             /* Name (for debugging purposes). */
-  uint8_t *stack;            /* Saved stack pointer. */
+  uint8_t* stack;            /* Saved stack pointer. */
 
   int priority;                /* Base priority. */
-  struct lock *lock_requested; /* Lock requested, used in priority donation */
+  struct lock* lock_requested; /* Lock requested, used in priority donation */
   struct list locks_held;      /* List of locks held, used in priority donation */
+
+  // USER THREADS //
+  struct list_elem owner_elem; /* Used in pcb to track threads owned */
+  struct thread* joiner;       /* Thread that called join on this thread */
+  // END USER THREADS //
 
   struct list_elem allelem; /* List element for all threads list. */
 
@@ -99,7 +104,7 @@ struct thread {
 
 #ifdef USERPROG
   /* Owned by process.c. */
-  struct process *pcb; /* Process control block if this thread is a userprog */
+  struct process* pcb; /* Process control block if this thread is a userprog */
 #endif
 
   /* Owned by thread.c. */
@@ -125,35 +130,35 @@ extern enum sched_policy active_sched_policy;
 void thread_init(void);
 void thread_start(void);
 
-bool thread_try_preempt(struct thread *compare);
+bool thread_try_preempt(struct thread* compare);
 
 void thread_tick(void);
 void thread_print_stats(void);
 
-typedef void thread_func(void *aux);
-tid_t thread_create(const char *name, int priority, thread_func *, void *);
+typedef void thread_func(void* aux);
+tid_t thread_create(const char* name, int priority, thread_func*, void*);
 
 void thread_block(void);
-void thread_unblock(struct thread *);
+void thread_unblock(struct thread*);
 
-struct thread *thread_current(void);
+struct thread* thread_current(void);
 tid_t thread_tid(void);
-const char *thread_name(void);
+const char* thread_name(void);
 
 void thread_exit(void) NO_RETURN;
 void thread_yield(void);
 
 /* Performs some operation on thread t, given auxiliary data AUX. */
-typedef void thread_action_func(struct thread *t, void *aux);
-void thread_foreach(thread_action_func *, void *);
+typedef void thread_action_func(struct thread* t, void* aux);
+void thread_foreach(thread_action_func*, void*);
 
-bool prio_less(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
-int thread_get_eprio(struct thread *t);
+bool prio_less(const struct list_elem* a, const struct list_elem* b, void* aux UNUSED);
+int thread_get_eprio(struct thread* t);
 
 int thread_get_priority(void);
 void thread_set_priority(int);
-int thread_get_effpriority(struct thread *t);
-void thread_set_effpriority(struct thread *t, struct thread *donor);
+int thread_get_effpriority(struct thread* t);
+void thread_set_effpriority(struct thread* t, struct thread* donor);
 
 int thread_get_nice(void);
 void thread_set_nice(int);

@@ -1,10 +1,10 @@
 /* Checks that growing a file updates the file position
    correctly. */
 
+#include <syscall.h>
 #include "tests/filesys/seq-test.h"
 #include "tests/lib.h"
 #include "tests/main.h"
-#include <syscall.h>
 
 static char buf[2134];
 

@@ -2,13 +2,13 @@
    such that its first byte is valid but the remaining bytes of
    the number are in invalid memory. Must kill process. */
 
+#include <syscall-nr.h>
+#include "tests/userprog/boundary.h"
 #include "tests/lib.h"
 #include "tests/main.h"
-#include "tests/userprog/boundary.h"
-#include <syscall-nr.h>
 
 void test_main(void) {
-  char *p = get_bad_boundary();
+  char* p = get_bad_boundary();
   p--;
   *p = 100;
 

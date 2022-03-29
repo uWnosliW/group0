@@ -2,16 +2,16 @@
    system call (which uses floating point arithmetic).
    Ensures that floating point registers are saved on a system call. */
 
-#include "tests/lib.h"
-#include "tests/main.h"
 #include <float.h>
 #include <stdint.h>
 #include <string.h>
 #include <syscall-nr.h>
+#include "tests/lib.h"
+#include "tests/main.h"
 
 #define FPU_SIZE 108
 #define NUM_VALUES 8
-const char *test_name = "fp-syscall";
+const char* test_name = "fp-syscall";
 static int values[NUM_VALUES] = {1, 6, 2, 162, 126, 2, 6, 1};
 
 /* Invokes syscall NUMBER, passing argument ARG0, and returns the
