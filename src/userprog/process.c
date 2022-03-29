@@ -23,7 +23,7 @@ static struct semaphore temporary;
 static thread_func start_process NO_RETURN;
 static thread_func start_pthread NO_RETURN;
 static bool load(const char *file_name, void (**eip)(void), void **esp);
-bool setup_thread(void (**eip)(void), void **esp);
+bool setup_thread(void (**eip)(void), void **esp, stub_fun sf);
 
 /* is_valid_buffer - Returns whether the first size bytes of the buffer pointed to by ptr are in
  * user space and mapped. */
@@ -810,7 +810,7 @@ pid_t get_pid(struct process *p) { return (pid_t)p->main_thread->tid; }
    This function will be implemented in Project 2: Multithreading. For
    now, it does nothing. You may find it necessary to change the
    function signature. */
-bool setup_thread(void (**eip)(void), void **esp) {
+bool setup_thread(void (**eip)(void), void **esp, stub_fun sf) {
   uint8_t *kpage = palloc_get_page(PAL_USER | PAL_ZERO);
   if (kpage == NULL)
     return false;
@@ -819,8 +819,8 @@ bool setup_thread(void (**eip)(void), void **esp) {
     bool success = install_page((uint8_t *)page_addr, kpage, true);
     if (success) {
       *esp = page_addr + PGSIZE;
-      // TODO: assign *eip to stub fun ?
-      PANIC("Not implemented");
+      // NOTE: mismatching fn ptr signatures
+      *eip = (void (*)(void))sf;
       return true;
     }
   }
@@ -837,7 +837,9 @@ bool setup_thread(void (**eip)(void), void **esp) {
    This function will be implemented in Project 2: Multithreading and
    should be similar to process_execute (). For now, it does nothing.
    */
-tid_t pthread_execute(stub_fun sf UNUSED, pthread_fun tf UNUSED, void *arg UNUSED) { return -1; }
+tid_t pthread_execute(stub_fun sf UNUSED, pthread_fun tf UNUSED, void *arg UNUSED) {
+  struct join_status *status = malloc(sizeof(struct join_status));
+}
 
 /* A thread function that creates a new user thread and starts it
    running. Responsible for adding itself to the list of threads in
