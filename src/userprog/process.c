@@ -14,6 +14,7 @@
 #include <debug.h>
 #include <inttypes.h>
 #include <round.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -809,7 +810,23 @@ pid_t get_pid(struct process *p) { return (pid_t)p->main_thread->tid; }
    This function will be implemented in Project 2: Multithreading. For
    now, it does nothing. You may find it necessary to change the
    function signature. */
-bool setup_thread(void (**eip)(void) UNUSED, void **esp UNUSED) { return false; }
+bool setup_thread(void (**eip)(void), void **esp) {
+  uint8_t *kpage = palloc_get_page(PAL_USER | PAL_ZERO);
+  if (kpage == NULL)
+    return false;
+
+  for (int32_t *page_addr = PHYS_BASE - PGSIZE; page_addr >= 0; page_addr -= PGSIZE) {
+    bool success = install_page((uint8_t *)page_addr, kpage, true);
+    if (success) {
+      *esp = page_addr + PGSIZE;
+      // TODO: assign *eip to stub fun ?
+      PANIC("Not implemented");
+      return true;
+    }
+  }
+  palloc_free_page(kpage);
+  return false;
+}
 
 /* Starts a new thread with a new user stack running SF, which takes
    TF and ARG as arguments on its user stack. This new thread may be
