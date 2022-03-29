@@ -1,9 +1,9 @@
 /* Verifies that overlapping memory mappings are disallowed. */
 
+#include <syscall.h>
+#include "tests/vm/sample.inc"
 #include "tests/lib.h"
 #include "tests/main.h"
-#include "tests/vm/sample.inc"
-#include <syscall.h>
 
 void test_main(void) {
   char *start = (char *)0x10000000;

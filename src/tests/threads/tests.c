@@ -1,7 +1,7 @@
 #include "tests/threads/tests.h"
+#include <test-lib.h>
 #include <debug.h>
 #include <string.h>
-#include <test-lib.h>
 
 static const struct test threads_tests[] = {
     {"alarm-single", test_alarm_single},

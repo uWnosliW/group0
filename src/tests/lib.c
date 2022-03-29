@@ -1,11 +1,11 @@
 #include "tests/lib.h"
 #include <float.h>
-#include <pthread.h>
 #include <random.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
 #include <syscall.h>
+#include <pthread.h>
 
 static lock_t console_lock;
 const char *test_name;

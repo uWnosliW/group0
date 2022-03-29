@@ -2,10 +2,10 @@
    positioned such that only its first byte is valid  memory (bytes 1-3
    of the pointer are invalid).  Must kill process. */
 
+#include <syscall-nr.h>
+#include "tests/userprog/boundary.h"
 #include "tests/lib.h"
 #include "tests/main.h"
-#include "tests/userprog/boundary.h"
-#include <syscall-nr.h>
 
 void test_main(void) {
   char *p = get_bad_boundary() - 5;

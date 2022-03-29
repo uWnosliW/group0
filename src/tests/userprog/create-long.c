@@ -1,10 +1,10 @@
 /* Tries to create a file with a name that is much too long,
    which must fail. */
 
-#include "tests/lib.h"
-#include "tests/main.h"
 #include <string.h>
 #include <syscall.h>
+#include "tests/lib.h"
+#include "tests/main.h"
 
 void test_main(void) {
   static char name[512];

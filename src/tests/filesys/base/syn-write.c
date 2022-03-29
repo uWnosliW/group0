@@ -2,13 +2,13 @@
    the contents of a file and waits for them to finish.  Then
    reads back the file and verifies its contents. */
 
-#include "tests/filesys/base/syn-write.h"
-#include "tests/lib.h"
-#include "tests/main.h"
 #include <random.h>
 #include <stdio.h>
 #include <string.h>
 #include <syscall.h>
+#include "tests/filesys/base/syn-write.h"
+#include "tests/lib.h"
+#include "tests/main.h"
 
 char buf1[BUF_SIZE];
 char buf2[BUF_SIZE];

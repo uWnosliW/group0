@@ -2,10 +2,10 @@
 
    Creates a tar archive. */
 
+#include <ustar.h>
+#include <syscall.h>
 #include <stdio.h>
 #include <string.h>
-#include <syscall.h>
-#include <ustar.h>
 
 static void usage(void);
 static bool make_tar_archive(const char *archive_name, char *files[], size_t file_cnt);

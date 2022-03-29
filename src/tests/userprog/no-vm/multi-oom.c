@@ -15,14 +15,14 @@
    Written by Godmar Back <godmar@gmail.com>
  */
 
-#include "tests/lib.h"
 #include <debug.h>
-#include <random.h>
-#include <stdbool.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
+#include <stdlib.h>
+#include <stdbool.h>
 #include <syscall.h>
+#include <random.h>
+#include "tests/lib.h"
 
 static const int EXPECTED_DEPTH_TO_PASS = 30;
 static const int EXPECTED_REPETITIONS = 10;

@@ -2,8 +2,8 @@
 
 #include "tests/lib.h"
 #include "tests/main.h"
-#include <pthread.h>
 #include <syscall.h>
+#include <pthread.h>
 
 #define NUM_THREADS 11
 #define SUM_TO 100

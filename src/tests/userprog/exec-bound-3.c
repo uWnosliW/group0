@@ -3,10 +3,10 @@
    but the remainder of the string is in invalid memory. Must
    kill process. */
 
+#include <syscall-nr.h>
+#include "tests/userprog/boundary.h"
 #include "tests/lib.h"
 #include "tests/main.h"
-#include "tests/userprog/boundary.h"
-#include <syscall-nr.h>
 
 void test_main(void) {
   char *p = get_bad_boundary() - 1;

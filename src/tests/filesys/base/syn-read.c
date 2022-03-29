@@ -2,12 +2,12 @@
    file and make sure that the contents are what they should
    be. */
 
-#include "tests/filesys/base/syn-read.h"
-#include "tests/lib.h"
-#include "tests/main.h"
 #include <random.h>
 #include <stdio.h>
 #include <syscall.h>
+#include "tests/lib.h"
+#include "tests/main.h"
+#include "tests/filesys/base/syn-read.h"
 
 static char buf[BUF_SIZE];
 

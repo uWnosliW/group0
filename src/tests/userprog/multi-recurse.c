@@ -1,11 +1,11 @@
 /* Executes itself recursively to the depth indicated by the
    first command-line argument. */
 
-#include "tests/lib.h"
 #include <debug.h>
-#include <stdio.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <syscall.h>
+#include "tests/lib.h"
 
 int main(int argc UNUSED, char *argv[]) {
   int n = atoi(argv[1]);

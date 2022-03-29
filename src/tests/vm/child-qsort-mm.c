@@ -1,11 +1,11 @@
 /* Mmaps a 128 kB file "sorts" the bytes in it, using quick sort,
    a multi-pass divide and conquer algorithm.  */
 
+#include <debug.h>
+#include <syscall.h>
 #include "tests/lib.h"
 #include "tests/main.h"
 #include "tests/vm/qsort.h"
-#include <debug.h>
-#include <syscall.h>
 
 int main(int argc UNUSED, char *argv[]) {
   int handle;

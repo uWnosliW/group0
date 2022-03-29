@@ -1,8 +1,8 @@
 /* Child process run by floating point tests
    Uses Taylor definition to compute the Euler constant e */
 
-#include "tests/lib.h"
 #include <float.h>
+#include "tests/lib.h"
 
 const char *test_name = "compute-e";
 

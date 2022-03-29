@@ -1,9 +1,9 @@
 /* Opens a directory, then tries to write to it, which must
    fail. */
 
+#include <syscall.h>
 #include "tests/lib.h"
 #include "tests/main.h"
-#include <syscall.h>
 
 void test_main(void) {
   int fd;

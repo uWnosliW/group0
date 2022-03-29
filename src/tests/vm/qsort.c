@@ -1,7 +1,7 @@
 #include "tests/vm/qsort.h"
+#include <stdbool.h>
 #include <debug.h>
 #include <random.h>
-#include <stdbool.h>
 
 /* Picks a pivot for the quicksort from the SIZE bytes in BUF. */
 static unsigned char pick_pivot(unsigned char *buf, size_t size) {

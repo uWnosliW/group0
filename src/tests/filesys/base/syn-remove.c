@@ -1,11 +1,11 @@
 /* Verifies that a deleted file may still be written to and read
    from. */
 
-#include "tests/lib.h"
-#include "tests/main.h"
 #include <random.h>
 #include <string.h>
 #include <syscall.h>
+#include "tests/lib.h"
+#include "tests/main.h"
 
 char buf1[1234];
 char buf2[1234];

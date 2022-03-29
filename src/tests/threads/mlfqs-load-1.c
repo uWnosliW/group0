@@ -6,13 +6,13 @@
    Then, verifies that 10 seconds of inactivity drop the load
    average back below 0.5 again. */
 
-#include "devices/timer.h"
+#include <stdio.h>
 #include "tests/threads/tests.h"
 #include "threads/init.h"
 #include "threads/malloc.h"
 #include "threads/synch.h"
 #include "threads/thread.h"
-#include <stdio.h>
+#include "devices/timer.h"
 
 void test_mlfqs_load_1(void) {
   int64_t start_time;

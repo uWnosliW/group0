@@ -1,8 +1,8 @@
 /* Ensures that FPU is reset when jumping into a user program */
 
+#include <stdint.h>
 #include "tests/lib.h"
 #include "tests/main.h"
-#include <stdint.h>
 
 #define FPU_SIZE 108
 const char *test_name = "fp-init";

@@ -2,8 +2,8 @@
 
 #include "tests/lib.h"
 #include "tests/main.h"
-#include <pthread.h>
 #include <syscall.h>
+#include <pthread.h>
 
 // Thread data
 struct thread_data {

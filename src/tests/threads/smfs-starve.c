@@ -2,12 +2,12 @@
    make forward progress, even in the presence of high-priority
    threads. */
 
-#include "devices/timer.h"
+#include <stdio.h>
 #include "tests/threads/tests.h"
 #include "threads/init.h"
 #include "threads/synch.h"
 #include "threads/thread.h"
-#include <stdio.h>
+#include "devices/timer.h"
 
 static thread_func starving_thread_func;
 static thread_func greedy_thread_func;

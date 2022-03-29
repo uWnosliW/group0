@@ -2,10 +2,10 @@
    Encrypts 1 MB of zeros, then decrypts it, and ensures that
    the zeros are back. */
 
+#include <string.h>
 #include "tests/arc4.h"
 #include "tests/lib.h"
 #include "tests/main.h"
-#include <string.h>
 
 #define SIZE (1024 * 1024)
 static char buf[SIZE];

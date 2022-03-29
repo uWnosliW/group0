@@ -97,13 +97,13 @@
    After 178 seconds, load average=5.16.
 */
 
-#include "devices/timer.h"
+#include <stdio.h>
 #include "tests/threads/tests.h"
 #include "threads/init.h"
 #include "threads/malloc.h"
 #include "threads/synch.h"
 #include "threads/thread.h"
-#include <stdio.h>
+#include "devices/timer.h"
 
 static int64_t start_time;
 

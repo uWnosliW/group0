@@ -7,11 +7,11 @@
    (This test could be improved by adding a "yield" system call
    and calling yield whenever we receive a 0-byte read.) */
 
-#include "tests/filesys/extended/syn-rw.h"
-#include "tests/lib.h"
 #include <random.h>
 #include <stdlib.h>
 #include <syscall.h>
+#include "tests/filesys/extended/syn-rw.h"
+#include "tests/lib.h"
 
 static char buf1[BUF_SIZE];
 static char buf2[BUF_SIZE];

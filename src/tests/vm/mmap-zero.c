@@ -3,9 +3,9 @@
    Then dereferences the address that we tried to map,
    and the process must be terminated with -1 exit code. */
 
+#include <syscall.h>
 #include "tests/lib.h"
 #include "tests/main.h"
-#include <syscall.h>
 
 void test_main(void) {
   char *data = (char *)0x7f000000;

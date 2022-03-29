@@ -2,9 +2,9 @@
    fail.  The requirements in each case are different; refer to
    the assignment for details. */
 
+#include <syscall.h>
 #include "tests/lib.h"
 #include "tests/main.h"
-#include <syscall.h>
 
 static int wrap_open(const char *name) {
   static int fds[8], fd_cnt;

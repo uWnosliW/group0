@@ -2,8 +2,8 @@
 
 #include "tests/lib.h"
 #include "tests/main.h"
-#include <debug.h>
 #include <pthread.h>
+#include <debug.h>
 
 void thread_function(void *arg);
 

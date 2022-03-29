@@ -1,9 +1,9 @@
 /* Try a 0-byte read, which should return 0 without reading
    anything. */
 
+#include <syscall.h>
 #include "tests/lib.h"
 #include "tests/main.h"
-#include <syscall.h>
 
 void test_main(void) {
   int handle, byte_cnt;

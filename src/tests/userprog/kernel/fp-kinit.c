@@ -1,12 +1,12 @@
 /* Tests whether floating point initialized when new threads are made */
 
-#include "tests/userprog/kernel/tests.h"
-#include "threads/synch.h"
-#include "threads/thread.h"
-#include <debug.h>
 #include <float.h>
 #include <stdint.h>
 #include <string.h>
+#include <debug.h>
+#include "tests/userprog/kernel/tests.h"
+#include "threads/thread.h"
+#include "threads/synch.h"
 
 #define FPU_SIZE 108
 #define NUM_VALUES 8

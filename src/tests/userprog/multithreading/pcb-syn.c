@@ -2,11 +2,11 @@
    will continuously open and close files, other threads will continuously
    init locks and semaphores */
 
+#include "tests/userprog/sample.inc"
 #include "tests/lib.h"
 #include "tests/main.h"
-#include "tests/userprog/sample.inc"
-#include <pthread.h>
 #include <syscall.h>
+#include <pthread.h>
 
 #define RESOURCE_MAX 126
 #define SYN_MAX 18

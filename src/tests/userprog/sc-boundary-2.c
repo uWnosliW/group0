@@ -2,10 +2,10 @@
    argument on a separate page from the rest of the bytes.  This
    must work. */
 
+#include <syscall-nr.h>
+#include "tests/userprog/boundary.h"
 #include "tests/lib.h"
 #include "tests/main.h"
-#include "tests/userprog/boundary.h"
-#include <syscall-nr.h>
 
 void test_main(void) {
   /* Make one byte of a syscall argument hang over into a second

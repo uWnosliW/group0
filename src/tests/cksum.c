@@ -1,7 +1,7 @@
 /* crctab[] and cksum() are from the `cksum' entry in SUSv3. */
 
-#include "tests/cksum.h"
 #include <stdint.h>
+#include "tests/cksum.h"
 
 static unsigned long crctab[] = {
     0x00000000, 0x04c11db7, 0x09823b6e, 0x0d4326d9, 0x130476dc, 0x17c56b6b, 0x1a864db2, 0x1e475005,

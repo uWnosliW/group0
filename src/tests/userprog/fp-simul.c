@@ -2,10 +2,10 @@
    (as a userprog) simultaneously.
    Ensures that floating point registers are saved on a context switch. */
 
-#include "tests/lib.h"
-#include "tests/main.h"
 #include <float.h>
 #include <syscall.h>
+#include "tests/lib.h"
+#include "tests/main.h"
 
 const char *test_name = "fp-simul";
 

@@ -1,8 +1,8 @@
 /* Verifies that misaligned memory mappings are disallowed. */
 
+#include <syscall.h>
 #include "tests/lib.h"
 #include "tests/main.h"
-#include <syscall.h>
 
 void test_main(void) {
   int handle;

@@ -1,10 +1,10 @@
 /* Invokes a system call with the system call number and its
    argument on separate pages.  This must work. */
 
+#include <syscall-nr.h>
+#include "tests/userprog/boundary.h"
 #include "tests/lib.h"
 #include "tests/main.h"
-#include "tests/userprog/boundary.h"
-#include <syscall-nr.h>
 
 void test_main(void) {
   /* Put a syscall number at the end of one page

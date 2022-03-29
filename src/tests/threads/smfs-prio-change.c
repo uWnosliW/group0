@@ -3,12 +3,12 @@
    requires that it yield immediately! It should, however,
    be pre-empted eventually. */
 
-#include "devices/timer.h"
+#include <stdio.h>
 #include "tests/threads/tests.h"
 #include "threads/init.h"
 #include "threads/synch.h"
 #include "threads/thread.h"
-#include <stdio.h>
+#include "devices/timer.h"
 
 static thread_func alice_thread;
 static thread_func bob_thread;

@@ -7,11 +7,11 @@
    Phase IV: fork threads that read the file from the same fd
    Phase V: join on the threads using pthread_exit on the main thread */
 
+#include "tests/userprog/sample.inc"
 #include "tests/lib.h"
 #include "tests/main.h"
-#include "tests/userprog/sample.inc"
-#include <pthread.h>
 #include <syscall.h>
+#include <pthread.h>
 
 #define FILE_CHECKS 126
 #define NUM_THREADS 10

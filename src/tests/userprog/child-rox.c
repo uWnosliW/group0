@@ -4,11 +4,11 @@
    Then recursively executes itself to the depth indicated by the
    first command-line argument. */
 
-#include "tests/lib.h"
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <syscall.h>
+#include "tests/lib.h"
 
 static void try_write(void) {
   int handle;
