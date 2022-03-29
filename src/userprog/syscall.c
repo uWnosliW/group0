@@ -439,7 +439,7 @@ static void syscall_handler(struct intr_frame *f UNUSED) {
       struct process *pcb = thread_current()->pcb;
 
       /* Too many semas or trying to initialize NULL sema or value was negative */
-      if (pcb->num_semas == 128 || args[1] == 0 || args[2] < 0) {
+      if (pcb->num_semas == 128 || args[1] == 0 || (int)args[2] < 0) {
         f->eax = false;
         break;
       }
