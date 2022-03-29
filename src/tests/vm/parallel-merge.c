@@ -4,11 +4,11 @@
    verify that the result is what it should be. */
 
 #include "tests/vm/parallel-merge.h"
+#include <stdio.h>
+#include <syscall.h>
 #include "tests/arc4.h"
 #include "tests/lib.h"
 #include "tests/main.h"
-#include <stdio.h>
-#include <syscall.h>
 
 #define CHUNK_SIZE (128 * 1024)
 #define CHUNK_CNT 8                        /* Number of chunks. */

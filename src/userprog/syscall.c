@@ -39,6 +39,10 @@ static void syscall_handler(struct intr_frame *f UNUSED) {
   if (!is_valid_buffer((void *)args, 4))
     print_and_exit(f, -1);
 
+  /* Grab pcb lock */
+  struct lock *pcb_lock_ptr = &thread_current()->pcb->pcb_lock;
+  lock_acquire(pcb_lock_ptr);
+
   switch (args[0]) {
     case SYS_HALT: {
       shutdown_power_off(); /* Shut down */
@@ -398,7 +402,7 @@ static void syscall_handler(struct intr_frame *f UNUSED) {
     }
 
     case SYS_LOCK_ACQUIRE: {
-      int lock_num = *((int *)args[1]);
+      int lock_num = *((char *)args[1]);
       struct process *pcb = thread_current()->pcb;
 
       if (pcb->locks[lock_num] == NULL) {
@@ -417,7 +421,7 @@ static void syscall_handler(struct intr_frame *f UNUSED) {
     }
 
     case SYS_LOCK_RELEASE: {
-      int lock_num = *((int *)args[1]);
+      int lock_num = *((char *)args[1]);
       struct process *pcb = thread_current()->pcb;
 
       if (pcb->locks[lock_num] == NULL) {
@@ -490,4 +494,6 @@ static void syscall_handler(struct intr_frame *f UNUSED) {
 
     default: { PANIC("Syscall is not implemented"); }
   }
+
+  lock_release(pcb_lock_ptr);
 }

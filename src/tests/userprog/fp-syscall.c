@@ -2,12 +2,12 @@
    system call (which uses floating point arithmetic).
    Ensures that floating point registers are saved on a system call. */
 
-#include "tests/lib.h"
-#include "tests/main.h"
 #include <float.h>
 #include <stdint.h>
 #include <string.h>
 #include <syscall-nr.h>
+#include "tests/lib.h"
+#include "tests/main.h"
 
 #define FPU_SIZE 108
 #define NUM_VALUES 8

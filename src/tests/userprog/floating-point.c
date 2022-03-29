@@ -1,8 +1,8 @@
 /* Ensures that basic floating point arithmetic works in a user program */
 
+#include <float.h>
 #include "tests/lib.h"
 #include "tests/main.h"
-#include <float.h>
 
 const char *test_name = "floating-point";
 

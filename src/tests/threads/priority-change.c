@@ -2,10 +2,10 @@
    longer the highest-priority thread in the system causes it to
    yield immediately. */
 
+#include <stdio.h>
 #include "tests/threads/tests.h"
 #include "threads/init.h"
 #include "threads/thread.h"
-#include <stdio.h>
 
 static thread_func changing_thread;
 

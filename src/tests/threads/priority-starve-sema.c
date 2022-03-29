@@ -2,12 +2,12 @@
    thread induces total starvation in a lower-priority thread. */
 /* But with semaphores! */
 
-#include "devices/timer.h"
+#include <stdio.h>
 #include "tests/threads/tests.h"
 #include "threads/init.h"
 #include "threads/synch.h"
 #include "threads/thread.h"
-#include <stdio.h>
+#include "devices/timer.h"
 
 static thread_func low_prio_thread_func;
 static thread_func medium_prio_thread_func;

@@ -4,11 +4,11 @@
    thread attempts to lower its priority, which should not take
    effect until the donation is released. */
 
+#include <stdio.h>
 #include "tests/threads/tests.h"
 #include "threads/init.h"
 #include "threads/synch.h"
 #include "threads/thread.h"
-#include <stdio.h>
 
 static thread_func acquire_thread_func;
 

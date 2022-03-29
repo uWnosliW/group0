@@ -208,6 +208,9 @@ static void start_process(void *args_) {
     new_pcb->pagedir = NULL;
     t->pcb = new_pcb;
 
+    /* Initialize pcb lock */
+    lock_init(&t->pcb->pcb_lock);
+
     /* Make child point to its status */
     t->pcb->status = status;
 

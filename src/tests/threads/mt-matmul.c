@@ -4,12 +4,12 @@
 /* Based on UC Berkeley's RISC-V benchmark of the same name:
    https://github.com/ucb-bar/riscv-benchmarks/tree/master/mt-matmul */
 
-#include "tests/threads/matmul_data.h"
+#include <stdio.h>
 #include "tests/threads/tests.h"
+#include "tests/threads/matmul_data.h"
 #include "threads/init.h"
 #include "threads/synch.h"
 #include "threads/thread.h"
-#include <stdio.h>
 
 void __attribute__((noinline)) matmul(const int tid, const int nthreads, const int lda,
                                       const short A[], const short B[], short C[]);

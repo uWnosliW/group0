@@ -1,9 +1,9 @@
 /* Tests whether floating point registers are saved on kernel transitions */
 
-#include "tests/userprog/kernel/tests.h"
-#include "threads/synch.h"
-#include "threads/thread.h"
 #include <float.h>
+#include "tests/userprog/kernel/tests.h"
+#include "threads/thread.h"
+#include "threads/synch.h"
 
 #define NUM_VALUES 4
 int values[NUM_VALUES] = {100, 101, 102, 103};

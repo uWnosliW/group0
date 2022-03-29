@@ -10,11 +10,11 @@
 
    Written by Godmar Back <gback@cs.vt.edu>. */
 
+#include <stdio.h>
 #include "tests/threads/tests.h"
 #include "threads/init.h"
 #include "threads/synch.h"
 #include "threads/thread.h"
-#include <stdio.h>
 
 struct lock_and_sema {
   struct lock lock;

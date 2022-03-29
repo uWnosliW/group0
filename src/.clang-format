@@ -5,6 +5,6 @@ UseTab: Never
 PointerAlignment: Right
 ColumnLimit: 100
 ReflowComments: true
-SortIncludes: true
+SortIncludes: false
 IndentCaseLabels: true
 BreakBeforeBraces: Attach

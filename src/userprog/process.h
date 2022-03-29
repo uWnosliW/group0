@@ -32,6 +32,8 @@ struct fd_table_entry *get_fd_table_entry(uint32_t fd);
    to the PCB, and the PCB will have a pointer to the main thread
    of the process, which is `special`. */
 struct process {
+  struct lock pcb_lock;
+
   uint32_t *pagedir;             /* Page directory. */
   char process_name[16];         /* Name of the main thread */
   struct thread *main_thread;    /* Pointer to main thread */

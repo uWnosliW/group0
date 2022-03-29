@@ -1,14 +1,14 @@
 /* This test is exactly the same as tests/userprog/no-vm/multi-oom.c
    except it also consumes lock & semaphore resources. */
 
-#include "tests/lib.h"
 #include <debug.h>
-#include <random.h>
-#include <stdbool.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
+#include <stdlib.h>
+#include <stdbool.h>
 #include <syscall.h>
+#include <random.h>
+#include "tests/lib.h"
 
 static const int RESOURCE_MAX = 126;
 static const int EXPECTED_DEPTH_TO_PASS = 30;

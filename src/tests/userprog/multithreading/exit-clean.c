@@ -3,12 +3,12 @@
    Then, the original process tries to access file resources itself to make
    sure resources were cleanly handled on child process exit */
 
-#include "tests/lib.h"
 #include "tests/userprog/sample.inc"
-#include <pthread.h>
+#include "tests/lib.h"
 #include <stdio.h>
 #include <string.h>
 #include <syscall.h>
+#include <pthread.h>
 
 #define NUM_THREADS 100
 #define NUM_ACCESS 100

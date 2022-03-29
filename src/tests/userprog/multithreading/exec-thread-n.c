@@ -4,9 +4,9 @@
    run and then finishes itself. */
 
 #include "tests/lib.h"
-#include <pthread.h>
 #include <string.h>
 #include <syscall.h>
+#include <pthread.h>
 
 #define NUM_THREADS 10
 

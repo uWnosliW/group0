@@ -3,10 +3,10 @@
    sequence.  Then we merge the chunks and verify that the result
    is what it should be. */
 
+#include <syscall.h>
 #include "tests/arc4.h"
 #include "tests/lib.h"
 #include "tests/main.h"
-#include <syscall.h>
 
 /* This is the max file size for an older version of the Pintos
    file system that had 126 direct blocks each pointing to a

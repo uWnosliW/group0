@@ -6,8 +6,8 @@
 
 #include "tests/lib.h"
 #include "tests/main.h"
-#include <pthread.h>
 #include <syscall.h>
+#include <pthread.h>
 
 void thread_function(void *arg_);
 

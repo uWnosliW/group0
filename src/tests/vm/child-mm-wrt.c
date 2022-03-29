@@ -3,11 +3,11 @@
    without calling munmap.  The data in the mapped region must be
    written out at program termination. */
 
-#include "tests/lib.h"
-#include "tests/main.h"
-#include "tests/vm/sample.inc"
 #include <string.h>
 #include <syscall.h>
+#include "tests/vm/sample.inc"
+#include "tests/lib.h"
+#include "tests/main.h"
 
 #define ACTUAL ((void *)0x10000000)
 

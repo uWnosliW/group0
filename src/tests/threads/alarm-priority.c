@@ -1,13 +1,13 @@
 /* Checks that when the alarm clock wakes up threads, the
    higher-priority threads run first. */
 
-#include "devices/timer.h"
+#include <stdio.h>
 #include "tests/threads/tests.h"
 #include "threads/init.h"
 #include "threads/malloc.h"
 #include "threads/synch.h"
 #include "threads/thread.h"
-#include <stdio.h>
+#include "devices/timer.h"
 
 static thread_func alarm_priority_thread;
 static int64_t wake_time;

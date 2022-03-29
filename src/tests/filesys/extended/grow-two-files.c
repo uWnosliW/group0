@@ -1,10 +1,10 @@
 /* Grows two files in parallel and checks that their contents are
    correct. */
 
-#include "tests/lib.h"
-#include "tests/main.h"
 #include <random.h>
 #include <syscall.h>
+#include "tests/lib.h"
+#include "tests/main.h"
 
 #define FILE_SIZE 8143
 static char buf_a[FILE_SIZE];

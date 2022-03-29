@@ -7,9 +7,9 @@
    Then, both root and the child thread finish when root main calls pthread_exit() */
 
 #include "tests/lib.h"
-#include <pthread.h>
 #include <string.h>
 #include <syscall.h>
+#include <pthread.h>
 
 // Global variables
 sema_t hang_main;

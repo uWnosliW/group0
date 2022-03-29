@@ -3,8 +3,8 @@
 
 #include "tests/lib.h"
 #include "tests/main.h"
-#include <pthread.h>
 #include <syscall.h>
+#include <pthread.h>
 
 /* These locks plus the console lock add up to 128 in total */
 #define NUM_SYNCH 127

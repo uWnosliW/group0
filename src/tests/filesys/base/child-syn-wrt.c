@@ -2,11 +2,11 @@
    Writes into part of a test file.  Other processes will be
    writing into other parts at the same time. */
 
-#include "tests/filesys/base/syn-write.h"
-#include "tests/lib.h"
 #include <random.h>
 #include <stdlib.h>
 #include <syscall.h>
+#include "tests/lib.h"
+#include "tests/filesys/base/syn-write.h"
 
 char buf[BUF_SIZE];
 

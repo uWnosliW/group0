@@ -8,12 +8,12 @@
 */
 
 #undef NDEBUG
-#include "threads/test.h"
 #include <debug.h>
 #include <limits.h>
 #include <random.h>
-#include <stdio.h>
 #include <stdlib.h>
+#include <stdio.h>
+#include "threads/test.h"
 
 /* Maximum number of elements in an array that we will test. */
 #define MAX_CNT 4096

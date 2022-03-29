@@ -1,9 +1,9 @@
 /* Library function for creating a tree of directories. */
 
-#include "tests/filesys/extended/mk-tree.h"
-#include "tests/lib.h"
 #include <stdio.h>
 #include <syscall.h>
+#include "tests/filesys/extended/mk-tree.h"
+#include "tests/lib.h"
 
 static void do_mkdir(const char *format, ...) PRINTF_FORMAT(1, 2);
 static void do_touch(const char *format, ...) PRINTF_FORMAT(1, 2);

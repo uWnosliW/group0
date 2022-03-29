@@ -1,13 +1,13 @@
 /* Ensures that the fair scheduler gives higher-priority threads
    more CPU time on average than low-priority threads. */
 
-#include "devices/timer.h"
+#include <stdio.h>
 #include "tests/threads/tests.h"
 #include "threads/init.h"
-#include "threads/interrupt.h"
 #include "threads/synch.h"
 #include "threads/thread.h"
-#include <stdio.h>
+#include "devices/timer.h"
+#include "threads/interrupt.h"
 
 static thread_func counter_thread_func;
 

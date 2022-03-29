@@ -15,15 +15,15 @@
 
    (The above are computed via simulation in mlfqs.pm.) */
 
-#include "devices/timer.h"
+#include <stdio.h>
+#include <inttypes.h>
 #include "tests/threads/tests.h"
 #include "threads/init.h"
 #include "threads/malloc.h"
 #include "threads/palloc.h"
 #include "threads/synch.h"
 #include "threads/thread.h"
-#include <inttypes.h>
-#include <stdio.h>
+#include "devices/timer.h"
 
 static void test_mlfqs_fair(int thread_cnt, int nice_min, int nice_step);
 

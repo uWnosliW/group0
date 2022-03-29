@@ -1,10 +1,10 @@
 /* Maps and unmaps a file and verifies that the mapped region is
    inaccessible afterward. */
 
+#include <syscall.h>
+#include "tests/vm/sample.inc"
 #include "tests/lib.h"
 #include "tests/main.h"
-#include "tests/vm/sample.inc"
-#include <syscall.h>
 
 #define ACTUAL ((void *)0x10000000)
 

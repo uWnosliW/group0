@@ -1,7 +1,7 @@
 #include "tests/userprog/kernel/tests.h"
+#include <test-lib.h>
 #include <debug.h>
 #include <string.h>
-#include <test-lib.h>
 
 static const struct test userprog_tests[] = {
     {"fp-kasm", test_fp_kasm},

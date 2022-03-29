@@ -1,11 +1,11 @@
 /* Deletes and closes file that is mapped into memory
    and verifies that it can still be read through the mapping. */
 
-#include "tests/lib.h"
-#include "tests/main.h"
-#include "tests/vm/sample.inc"
 #include <string.h>
 #include <syscall.h>
+#include "tests/vm/sample.inc"
+#include "tests/lib.h"
+#include "tests/main.h"
 
 void test_main(void) {
   char *actual = (char *)0x10000000;
