@@ -387,14 +387,18 @@ void process_exit(void) {
   }
 
   /* Clean up synchronization primitives */
-  int num_locks = &curr_thread->pcb->num_locks;
-  int num_semas = &curr_thread->pcb->num_semas;
+  int num_locks = curr_thread->pcb->num_locks;
+  int num_semas = curr_thread->pcb->num_semas;
 
-  for (int i = 0; i < num_locks; i++)
-    free(&curr_thread->pcb->locks[i]);
+  for (int i = 0; i < num_locks; i++) {
+    struct lock *lck_ptr = curr_thread->pcb->locks[i];
+    if (lck_ptr->holder != NULL)
+      list_remove(&lck_ptr->elem);
+    free(lck_ptr);
+  }
 
   for (int i = 0; i < num_semas; i++)
-    free(&curr_thread->pcb->locks[i]);
+    free(curr_thread->pcb->semaphores[i]);
 
   /* Mark the child thread as dead */
   sema_up(&status->is_dead);

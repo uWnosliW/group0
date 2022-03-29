@@ -380,7 +380,7 @@ static void syscall_handler(struct intr_frame *f UNUSED) {
     case SYS_LOCK_INIT: {
       struct process *pcb = thread_current()->pcb;
 
-      if (pcb->num_locks == 128) {
+      if (pcb->num_locks == 128 || args[1] == 0) {
         f->eax = false;
         break;
       }
@@ -406,6 +406,11 @@ static void syscall_handler(struct intr_frame *f UNUSED) {
         break;
       }
 
+      if (pcb->locks[lock_num]->holder == thread_current()) {
+        f->eax = false;
+        break;
+      }
+
       lock_acquire(pcb->locks[lock_num]);
       f->eax = true;
       break;
@@ -420,6 +425,11 @@ static void syscall_handler(struct intr_frame *f UNUSED) {
         break;
       }
 
+      if (pcb->locks[lock_num]->holder != thread_current()) {
+        f->eax = false;
+        break;
+      }
+
       lock_release(pcb->locks[lock_num]);
       f->eax = true;
       break;
@@ -428,18 +438,18 @@ static void syscall_handler(struct intr_frame *f UNUSED) {
     case SYS_SEMA_INIT: {
       struct process *pcb = thread_current()->pcb;
 
-      if (pcb->num_semas == 128) {
+      /* Too many semas or trying to initialize NULL sema or value was negative */
+      if (pcb->num_semas == 128 || args[1] == 0 || args[2] < 0) {
         f->eax = false;
         break;
       }
 
-      int sema_val = *((int *)args[2]);
       char *new_sema = (char *)args[1];
       *new_sema = pcb->num_semas;
 
       pcb->semaphores[pcb->num_semas] = malloc(sizeof(struct semaphore));
       ASSERT(pcb->semaphores[pcb->num_semas] != NULL); // TODO: debug, remove when done
-      sema_init(pcb->semaphores[pcb->num_semas], sema_val);
+      sema_init(pcb->semaphores[pcb->num_semas], args[2]);
 
       pcb->num_semas++;
       f->eax = true;
