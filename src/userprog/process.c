@@ -21,12 +21,12 @@
 static struct semaphore temporary;
 static thread_func start_process NO_RETURN;
 static thread_func start_pthread NO_RETURN;
-static bool load(const char *file_name, void (**eip)(void), void **esp);
-bool setup_thread(void (**eip)(void), void **esp);
+static bool load(const char* file_name, void (**eip)(void), void** esp);
+bool setup_thread(void (**eip)(void), void** esp);
 
 /* is_valid_buffer - Returns whether the first size bytes of the buffer pointed to by ptr are in
  * user space and mapped. */
-bool is_valid_buffer(void *ptr, size_t size) {
+bool is_valid_buffer(void* ptr, size_t size) {
   /* NULL is an invalid buffer */
   if (ptr == NULL) {
     return false;
@@ -40,8 +40,8 @@ bool is_valid_buffer(void *ptr, size_t size) {
 
   /* If the last byte of ptr does not lie in user space or the address pointed to is unmapped,
    * return false */
-  if (!is_user_vaddr((void *)((char *)ptr + size)) ||
-      pagedir_get_page(thread_current()->pcb->pagedir, (void *)((char *)ptr + size)) == NULL) {
+  if (!is_user_vaddr((void*)((char*)ptr + size)) ||
+      pagedir_get_page(thread_current()->pcb->pagedir, (void*)((char*)ptr + size)) == NULL) {
     return false;
   }
 
@@ -51,7 +51,7 @@ bool is_valid_buffer(void *ptr, size_t size) {
 
 /* is_valid_string - Returns whether the entirety of the string the char* passed in points to is in
  * user space and mapped. */
-bool is_valid_string(char *ptr) {
+bool is_valid_string(char* ptr) {
   /* Initial check to make sure ptr is not null, a valid user address, and mapped to a valid page */
   if (ptr == NULL || !is_user_vaddr(ptr) ||
       pagedir_get_page(thread_current()->pcb->pagedir, ptr) == NULL) {
@@ -75,12 +75,12 @@ bool is_valid_string(char *ptr) {
 
 /* get_fd_table_entry - Returns the file descriptor matching the id passed in. If no match is found
  * returns NULL. */
-struct fd_table_entry *get_fd_table_entry(uint32_t fd) {
-  struct list *fd_table_ptr = &thread_current()->pcb->fd_table;
-  struct fd_table_entry *curr_fd;
+struct fd_table_entry* get_fd_table_entry(uint32_t fd) {
+  struct list* fd_table_ptr = &thread_current()->pcb->fd_table;
+  struct fd_table_entry* curr_fd;
 
   /* Iterate through the file descriptor table in the current thread */
-  struct list_elem *curr = list_begin(fd_table_ptr);
+  struct list_elem* curr = list_begin(fd_table_ptr);
   while (curr != list_end(fd_table_ptr)) {
     curr_fd = list_entry(curr, struct fd_table_entry, elem);
 
@@ -106,7 +106,7 @@ struct fd_table_entry *get_fd_table_entry(uint32_t fd) {
    the first user process. Any additions to the PCB should be also
    initialized here if main needs those members */
 void userprog_init(void) {
-  struct thread *t = thread_current();
+  struct thread* t = thread_current();
   bool success;
 
   /* Allocate process control block
@@ -129,12 +129,12 @@ void userprog_init(void) {
    FILENAME. The new thread may be scheduled (and may even exit)
    before process_execute() returns. Returns the new process's
    process id, or TID_ERROR if the thread cannot be created. */
-pid_t process_execute(const char *file_name) {
-  char *fn_copy;
+pid_t process_execute(const char* file_name) {
+  char* fn_copy;
   tid_t tid;
 
   /* Initialize the child's process_status, erroring if malloc fails */
-  struct process_status *child_status = malloc(sizeof(struct process_status));
+  struct process_status* child_status = malloc(sizeof(struct process_status));
   if (child_status == NULL) {
     return TID_ERROR;
   }
@@ -155,7 +155,7 @@ pid_t process_execute(const char *file_name) {
   strlcpy(fn_copy, file_name, PGSIZE);
 
   /* Initialize the child arguments passed into start_process, erroring if malloc fails */
-  struct start_thread_arg *child_args = malloc(sizeof(struct start_thread_arg));
+  struct start_thread_arg* child_args = malloc(sizeof(struct start_thread_arg));
   if (child_args == NULL) {
     return TID_ERROR;
     free(child_status);
@@ -184,13 +184,13 @@ pid_t process_execute(const char *file_name) {
 }
 
 /* A thread function that loads a user process and starts it running. */
-static void start_process(void *args_) {
+static void start_process(void* args_) {
   /* Cast generic pointer passed in and get the arguments passed in*/
-  struct start_thread_arg *args = (struct start_thread_arg *)args_;
-  char *file_name = args->file_name;
-  struct process_status *status = args->status;
+  struct start_thread_arg* args = (struct start_thread_arg*)args_;
+  char* file_name = args->file_name;
+  struct process_status* status = args->status;
 
-  struct thread *t = thread_current();
+  struct thread* t = thread_current();
   struct intr_frame if_;
   bool success, pcb_success;
 
@@ -198,7 +198,7 @@ static void start_process(void *args_) {
   status->pid = t->tid;
 
   /* Allocate process control block */
-  struct process *new_pcb = malloc(sizeof(struct process));
+  struct process* new_pcb = malloc(sizeof(struct process));
   success = pcb_success = new_pcb != NULL;
 
   /* Initialize process control block */
@@ -225,6 +225,12 @@ static void start_process(void *args_) {
     /* Initialize synchronization primitive ids */
     t->pcb->num_locks = 0;
     t->pcb->num_semas = 0;
+
+    /* Initialize user thread information */
+    list_init(&t->pcb->join_statuses);
+    list_init(&t->pcb->current_threads);
+
+    is_dying = false;
   }
 
   /* Initialize interrupt frame and load executable. */
@@ -248,7 +254,7 @@ static void start_process(void *args_) {
     /* Avoid race where PCB is freed before t->pcb is set to NULL
        If this happens, then an unfortuantely timed timer interrupt
        can try to activate the pagedir, but it is now freed memory */
-    struct process *pcb_to_free = t->pcb;
+    struct process* pcb_to_free = t->pcb;
     sema_up(&(t->pcb->status->is_dead));
     t->pcb = NULL;
     free(pcb_to_free);
@@ -288,10 +294,10 @@ static void start_process(void *args_) {
    does nothing. */
 int process_wait(pid_t pid) {
   /* Find the child process in child_processes, removing it if found to prevent double waits */
-  struct list *child_processes_ptr = &thread_current()->pcb->child_processes;
-  struct process_status *child_process_status;
+  struct list* child_processes_ptr = &thread_current()->pcb->child_processes;
+  struct process_status* child_process_status;
 
-  struct list_elem *curr = list_begin(child_processes_ptr);
+  struct list_elem* curr = list_begin(child_processes_ptr);
   while (curr != list_end(child_processes_ptr)) {
     child_process_status = list_entry(curr, struct process_status, elem);
     if (child_process_status->pid == pid) {
@@ -320,8 +326,8 @@ int process_wait(pid_t pid) {
 
 /* Free the current process's resources. */
 void process_exit(void) {
-  struct thread *curr_thread = thread_current();
-  uint32_t *pd;
+  struct thread* curr_thread = thread_current();
+  uint32_t* pd;
 
   /* If this thread does not have a PCB, exit immediately */
   if (curr_thread->pcb == NULL) {
@@ -347,14 +353,14 @@ void process_exit(void) {
 
   /* Decrement ref count in shared status.
     If ref_count reaches 0, free shared status */
-  struct process_status *status = curr_thread->pcb->status;
+  struct process_status* status = curr_thread->pcb->status;
   arc_drop_call_cl(status, NULL);
 
   /* Clean up child process list */
-  struct list *child_processes_ptr = &curr_thread->pcb->child_processes;
-  struct process_status *child_process_status;
+  struct list* child_processes_ptr = &curr_thread->pcb->child_processes;
+  struct process_status* child_process_status;
 
-  struct list_elem *curr = list_begin(child_processes_ptr);
+  struct list_elem* curr = list_begin(child_processes_ptr);
   while (curr != list_end(child_processes_ptr)) {
     child_process_status = list_entry(curr, struct process_status, elem);
 
@@ -363,7 +369,7 @@ void process_exit(void) {
     curr = list_next(curr);
 
     /* Decrement reference count in each shared status. Free if ref_count reaches 0. */
-    void lst_rm_callback(struct process_status * child_process_status, void *args UNUSED) {
+    void lst_rm_callback(struct process_status * child_process_status, void* args UNUSED) {
       list_remove(&child_process_status->elem);
     }
     closure_t lst_rm_callback_cl;
@@ -372,8 +378,8 @@ void process_exit(void) {
   }
 
   /* Clean up file descriptor table */
-  struct list *fd_table_ptr = &curr_thread->pcb->fd_table;
-  struct fd_table_entry *fdt_entry;
+  struct list* fd_table_ptr = &curr_thread->pcb->fd_table;
+  struct fd_table_entry* fdt_entry;
 
   curr = list_begin(fd_table_ptr);
   while (curr != list_end(fd_table_ptr)) {
@@ -394,7 +400,7 @@ void process_exit(void) {
   int num_semas = curr_thread->pcb->num_semas;
 
   for (int i = 0; i < num_locks; i++) {
-    struct lock *lck_ptr = curr_thread->pcb->locks[i];
+    struct lock* lck_ptr = curr_thread->pcb->locks[i];
     if (lck_ptr->holder != NULL)
       list_remove(&lck_ptr->elem);
     free(lck_ptr);
@@ -423,7 +429,7 @@ void process_exit(void) {
 /* Sets up the CPU for running user code in the current
    thread. This function is called on every context switch. */
 void process_activate(void) {
-  struct thread *t = thread_current();
+  struct thread* t = thread_current();
 
   /* Activate thread's page tables. */
   if (t->pcb != NULL && t->pcb->pagedir != NULL)
@@ -497,19 +503,19 @@ struct Elf32_Phdr {
 #define PF_W 2 /* Writable. */
 #define PF_R 4 /* Readable. */
 
-static bool setup_stack(void **esp);
-static bool validate_segment(const struct Elf32_Phdr *, struct file *);
-static bool load_segment(struct file *file, off_t ofs, uint8_t *upage, uint32_t read_bytes,
+static bool setup_stack(void** esp);
+static bool validate_segment(const struct Elf32_Phdr*, struct file*);
+static bool load_segment(struct file* file, off_t ofs, uint8_t* upage, uint32_t read_bytes,
                          uint32_t zero_bytes, bool writable);
 
 /* Loads an ELF executable from FILE_NAME into the current thread.
    Stores the executable's entry point into *EIP
    and its initial stack pointer into *ESP.
    Returns true if successful, false otherwise. */
-bool load(const char *file_name, void (**eip)(void), void **esp) {
-  struct thread *t = thread_current();
+bool load(const char* file_name, void (**eip)(void), void** esp) {
+  struct thread* t = thread_current();
   struct Elf32_Ehdr ehdr;
-  struct file *file = NULL;
+  struct file* file = NULL;
   off_t file_ofs;
   bool success = false;
   int i;
@@ -521,11 +527,11 @@ bool load(const char *file_name, void (**eip)(void), void **esp) {
   process_activate();
 
   int argc = 0;
-  const char *argv[128];
-  void *argv_addr[128];
+  const char* argv[128];
+  void* argv_addr[128];
 
-  char *save_ptr;
-  char *token = strtok_r((char *)file_name, " ", &save_ptr);
+  char* save_ptr;
+  char* token = strtok_r((char*)file_name, " ", &save_ptr);
   while (token != NULL) {
     argv[argc] = token;
     argc += 1;
@@ -592,7 +598,7 @@ bool load(const char *file_name, void (**eip)(void), void **esp) {
             read_bytes = 0;
             zero_bytes = ROUND_UP(page_offset + phdr.p_memsz, PGSIZE);
           }
-          if (!load_segment(file, file_page, (void *)mem_page, read_bytes, zero_bytes, writable))
+          if (!load_segment(file, file_page, (void*)mem_page, read_bytes, zero_bytes, writable))
             goto done;
         } else
           goto done;
@@ -635,7 +641,7 @@ bool load(const char *file_name, void (**eip)(void), void **esp) {
   }
 
   /* Push address of argv */
-  void *address_of_argv = *esp;
+  void* address_of_argv = *esp;
   *esp -= sizeof(*esp);
   memcpy(*esp, &address_of_argv, sizeof(int));
 
@@ -664,11 +670,11 @@ done:
 
 /* load() helpers. */
 
-static bool install_page(void *upage, void *kpage, bool writable);
+static bool install_page(void* upage, void* kpage, bool writable);
 
 /* Checks whether PHDR describes a valid, loadable segment in
    FILE and returns true if so, false otherwise. */
-static bool validate_segment(const struct Elf32_Phdr *phdr, struct file *file) {
+static bool validate_segment(const struct Elf32_Phdr* phdr, struct file* file) {
   /* p_offset and p_vaddr must have the same page offset. */
   if ((phdr->p_offset & PGMASK) != (phdr->p_vaddr & PGMASK))
     return false;
@@ -687,9 +693,9 @@ static bool validate_segment(const struct Elf32_Phdr *phdr, struct file *file) {
 
   /* The virtual memory region must both start and end within the
      user address space range. */
-  if (!is_user_vaddr((void *)phdr->p_vaddr))
+  if (!is_user_vaddr((void*)phdr->p_vaddr))
     return false;
-  if (!is_user_vaddr((void *)(phdr->p_vaddr + phdr->p_memsz)))
+  if (!is_user_vaddr((void*)(phdr->p_vaddr + phdr->p_memsz)))
     return false;
 
   /* The region cannot "wrap around" across the kernel virtual
@@ -723,7 +729,7 @@ static bool validate_segment(const struct Elf32_Phdr *phdr, struct file *file) {
 
    Return true if successful, false if a memory allocation error
    or disk read error occurs. */
-static bool load_segment(struct file *file, off_t ofs, uint8_t *upage, uint32_t read_bytes,
+static bool load_segment(struct file* file, off_t ofs, uint8_t* upage, uint32_t read_bytes,
                          uint32_t zero_bytes, bool writable) {
   ASSERT((read_bytes + zero_bytes) % PGSIZE == 0);
   ASSERT(pg_ofs(upage) == 0);
@@ -738,7 +744,7 @@ static bool load_segment(struct file *file, off_t ofs, uint8_t *upage, uint32_t 
     size_t page_zero_bytes = PGSIZE - page_read_bytes;
 
     /* Get a page of memory. */
-    uint8_t *kpage = palloc_get_page(PAL_USER);
+    uint8_t* kpage = palloc_get_page(PAL_USER);
     if (kpage == NULL)
       return false;
 
@@ -765,18 +771,19 @@ static bool load_segment(struct file *file, off_t ofs, uint8_t *upage, uint32_t 
 
 /* Create a minimal stack by mapping a zeroed page at the top of
    user virtual memory. */
-static bool setup_stack(void **esp) {
-  uint8_t *kpage;
+static bool setup_stack(void** esp) {
+  uint8_t* kpage;
   bool success = false;
 
   kpage = palloc_get_page(PAL_USER | PAL_ZERO);
   if (kpage != NULL) {
-    success = install_page(((uint8_t *)PHYS_BASE) - PGSIZE, kpage, true);
+    success = install_page(((uint8_t*)PHYS_BASE) - PGSIZE, kpage, true);
     if (success)
       *esp = PHYS_BASE;
     else
       palloc_free_page(kpage);
   }
+
   return success;
 }
 
@@ -789,8 +796,8 @@ static bool setup_stack(void **esp) {
    with palloc_get_page().
    Returns true on success, false if UPAGE is already mapped or
    if memory allocation fails. */
-static bool install_page(void *upage, void *kpage, bool writable) {
-  struct thread *t = thread_current();
+static bool install_page(void* upage, void* kpage, bool writable) {
+  struct thread* t = thread_current();
 
   /* Verify that there's not already a page at that virtual
      address, then map our page there. */
@@ -799,10 +806,10 @@ static bool install_page(void *upage, void *kpage, bool writable) {
 }
 
 /* Returns true if t is the main thread of the process p */
-bool is_main_thread(struct thread *t, struct process *p) { return p->main_thread == t; }
+bool is_main_thread(struct thread* t, struct process* p) { return p->main_thread == t; }
 
 /* Gets the PID of a process */
-pid_t get_pid(struct process *p) { return (pid_t)p->main_thread->tid; }
+pid_t get_pid(struct process* p) { return (pid_t)p->main_thread->tid; }
 
 /* Creates a new stack for the thread and sets up its arguments.
    Stores the thread's entry point into *EIP and its initial stack
@@ -812,7 +819,7 @@ pid_t get_pid(struct process *p) { return (pid_t)p->main_thread->tid; }
    This function will be implemented in Project 2: Multithreading. For
    now, it does nothing. You may find it necessary to change the
    function signature. */
-bool setup_thread(void (**eip)(void) UNUSED, void **esp UNUSED) { return false; }
+bool setup_thread(void (**eip)(void) UNUSED, void** esp UNUSED) { return false; }
 
 /* Starts a new thread with a new user stack running SF, which takes
    TF and ARG as arguments on its user stack. This new thread may be
@@ -823,7 +830,7 @@ bool setup_thread(void (**eip)(void) UNUSED, void **esp UNUSED) { return false; 
    This function will be implemented in Project 2: Multithreading and
    should be similar to process_execute (). For now, it does nothing.
    */
-tid_t pthread_execute(stub_fun sf UNUSED, pthread_fun tf UNUSED, void *arg UNUSED) { return -1; }
+tid_t pthread_execute(stub_fun sf UNUSED, pthread_fun tf UNUSED, void* arg UNUSED) { return -1; }
 
 /* A thread function that creates a new user thread and starts it
    running. Responsible for adding itself to the list of threads in
@@ -831,7 +838,7 @@ tid_t pthread_execute(stub_fun sf UNUSED, pthread_fun tf UNUSED, void *arg UNUSE
 
    This function will be implemented in Project 2: Multithreading and
    should be similar to start_process (). For now, it does nothing. */
-static void start_pthread(void *exec_ UNUSED) {}
+static void start_pthread(void* exec_ UNUSED) {}
 
 /* Waits for thread with TID to die, if that thread was spawned
    in the same process and has not been waited on yet. Returns TID on
