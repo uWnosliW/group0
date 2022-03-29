@@ -7,12 +7,12 @@
 
 /* Auxiliary data for vsnprintf_helper(). */
 struct vsnprintf_aux {
-  char *p;        /* Current output position. */
+  char* p;        /* Current output position. */
   int length;     /* Length of output string. */
   int max_length; /* Max length of output string. */
 };
 
-static void vsnprintf_helper(char, void *);
+static void vsnprintf_helper(char, void*);
 
 /* Like vprintf(), except that output is stored into BUFFER,
    which must have space for BUF_SIZE characters.  Writes at most
@@ -21,7 +21,7 @@ static void vsnprintf_helper(char, void *);
    BUF_SIZE is zero.  Returns the number of characters that would
    have been written to BUFFER, not including a null terminator,
    had there been enough room. */
-int vsnprintf(char *buffer, size_t buf_size, const char *format, va_list args) {
+int vsnprintf(char* buffer, size_t buf_size, const char* format, va_list args) {
   /* Set up aux data for vsnprintf_helper(). */
   struct vsnprintf_aux aux;
   aux.p = buffer;
@@ -39,8 +39,8 @@ int vsnprintf(char *buffer, size_t buf_size, const char *format, va_list args) {
 }
 
 /* Helper function for vsnprintf(). */
-static void vsnprintf_helper(char ch, void *aux_) {
-  struct vsnprintf_aux *aux = aux_;
+static void vsnprintf_helper(char ch, void* aux_) {
+  struct vsnprintf_aux* aux = aux_;
 
   if (aux->length++ < aux->max_length)
     *aux->p++ = ch;
@@ -53,7 +53,7 @@ static void vsnprintf_helper(char ch, void *aux_) {
    BUF_SIZE is zero.  Returns the number of characters that would
    have been written to BUFFER, not including a null terminator,
    had there been enough room. */
-int snprintf(char *buffer, size_t buf_size, const char *format, ...) {
+int snprintf(char* buffer, size_t buf_size, const char* format, ...) {
   va_list args;
   int retval;
 
@@ -68,7 +68,7 @@ int snprintf(char *buffer, size_t buf_size, const char *format, ...) {
    In the kernel, the console is both the video display and first
    serial port.
    In userspace, the console is file descriptor 1. */
-int printf(const char *format, ...) {
+int printf(const char* format, ...) {
   va_list args;
   int retval;
 
@@ -115,7 +115,7 @@ struct printf_conversion {
 
 struct integer_base {
   int base;           /* Base. */
-  const char *digits; /* Collection of digits. */
+  const char* digits; /* Collection of digits. */
   int x;              /* `x' character to use, for base 16 only. */
   int group;          /* Number of digits to group with ' flag. */
 };
@@ -129,15 +129,15 @@ static const struct integer_base base_X = {16, "0123456789ABCDEF", 'X', 4};
 static const int powers[16] = {0,      10,      100,      1000,      10000,
                                100000, 1000000, 10000000, 100000000, 1000000000};
 
-static const char *parse_conversion(const char *format, struct printf_conversion *, va_list *);
+static const char* parse_conversion(const char* format, struct printf_conversion*, va_list*);
 static void format_integer(uintmax_t value, bool is_signed, bool negative,
-                           const struct integer_base *, const struct printf_conversion *,
-                           void (*output)(char, void *), void *aux);
-static void output_dup(char ch, size_t cnt, void (*output)(char, void *), void *aux);
-static void format_string(const char *string, int length, struct printf_conversion *,
-                          void (*output)(char, void *), void *aux);
+                           const struct integer_base*, const struct printf_conversion*,
+                           void (*output)(char, void*), void* aux);
+static void output_dup(char ch, size_t cnt, void (*output)(char, void*), void* aux);
+static void format_string(const char* string, int length, struct printf_conversion*,
+                          void (*output)(char, void*), void* aux);
 
-void __vprintf(const char *format, va_list args, void (*output)(char, void *), void *aux) {
+void __vprintf(const char* format, va_list args, void (*output)(char, void*), void* aux) {
   for (; *format != '\0'; format++) {
     struct printf_conversion c;
 
@@ -204,7 +204,7 @@ void __vprintf(const char *format, va_list args, void (*output)(char, void *), v
       case 'X': {
         /* Unsigned integer conversions. */
         uintmax_t value;
-        const struct integer_base *b;
+        const struct integer_base* b;
 
         switch (c.type) {
           case CHAR:
@@ -266,7 +266,7 @@ void __vprintf(const char *format, va_list args, void (*output)(char, void *), v
 
       case 's': {
         /* String conversion. */
-        const char *s = va_arg(args, char *);
+        const char* s = va_arg(args, char*);
         if (s == NULL)
           s = "(null)";
 
@@ -279,7 +279,7 @@ void __vprintf(const char *format, va_list args, void (*output)(char, void *), v
       case 'p': {
         /* Pointer conversion.
                Format pointers as %#x. */
-        void *p = va_arg(args, void *);
+        void* p = va_arg(args, void*);
 
         c.flags = POUND;
         format_integer((uintptr_t)p, false, false, &base_x, &c, output, aux);
@@ -340,8 +340,8 @@ void __vprintf(const char *format, va_list args, void (*output)(char, void *), v
    initializes C appropriately.  Returns the character in FORMAT
    that indicates the conversion (e.g. the `d' in `%d').  Uses
    *ARGS for `*' field widths and precisions. */
-static const char *parse_conversion(const char *format, struct printf_conversion *c,
-                                    va_list *args) {
+static const char* parse_conversion(const char* format, struct printf_conversion* c,
+                                    va_list* args) {
   /* Parse flag characters. */
   c->flags = 0;
   for (;;) {
@@ -454,8 +454,8 @@ not_a_flag:
    according to the provided base B.  Details of the conversion
    are in C. */
 static void format_integer(uintmax_t value, bool is_signed, bool negative,
-                           const struct integer_base *b, const struct printf_conversion *c,
-                           void (*output)(char, void *), void *aux) {
+                           const struct integer_base* b, const struct printf_conversion* c,
+                           void (*output)(char, void*), void* aux) {
   char buf[64], *cp; /* Buffer and current position. */
   int x;             /* `x' character to use or 0 if none. */
   int sign;          /* Sign character or 0 if none. */
@@ -528,7 +528,7 @@ static void format_integer(uintmax_t value, bool is_signed, bool negative,
 }
 
 /* Writes CH to OUTPUT with auxiliary data AUX, CNT times. */
-static void output_dup(char ch, size_t cnt, void (*output)(char, void *), void *aux) {
+static void output_dup(char ch, size_t cnt, void (*output)(char, void*), void* aux) {
   while (cnt-- > 0)
     output(ch, aux);
 }
@@ -536,8 +536,8 @@ static void output_dup(char ch, size_t cnt, void (*output)(char, void *), void *
 /* Formats the LENGTH characters starting at STRING according to
    the conversion specified in C.  Writes output to OUTPUT with
    auxiliary data AUX. */
-static void format_string(const char *string, int length, struct printf_conversion *c,
-                          void (*output)(char, void *), void *aux) {
+static void format_string(const char* string, int length, struct printf_conversion* c,
+                          void (*output)(char, void*), void* aux) {
   int i;
   if (c->width > length && (c->flags & MINUS) == 0)
     output_dup(' ', c->width - length, output, aux);
@@ -549,7 +549,7 @@ static void format_string(const char *string, int length, struct printf_conversi
 
 /* Wrapper for __vprintf() that converts varargs into a
    va_list. */
-void __printf(const char *format, void (*output)(char, void *), void *aux, ...) {
+void __printf(const char* format, void (*output)(char, void*), void* aux, ...) {
   va_list args;
 
   va_start(args, aux);
@@ -562,8 +562,8 @@ void __printf(const char *format, void (*output)(char, void *), void *aux, ...) 
    starting at OFS for the first byte in BUF.  If ASCII is true
    then the corresponding ASCII characters are also rendered
    alongside. */
-void hex_dump(uintptr_t ofs, const void *buf_, size_t size, bool ascii) {
-  const uint8_t *buf = buf_;
+void hex_dump(uintptr_t ofs, const void* buf_, size_t size, bool ascii) {
+  const uint8_t* buf = buf_;
   const size_t per_line = 16; /* Maximum bytes per line. */
 
   while (size > 0) {
@@ -609,8 +609,8 @@ void print_human_readable_size(uint64_t size) {
   if (size == 1)
     printf("1 byte");
   else {
-    static const char *factors[] = {"bytes", "kB", "MB", "GB", "TB", NULL};
-    const char **fp;
+    static const char* factors[] = {"bytes", "kB", "MB", "GB", "TB", NULL};
+    const char** fp;
 
     for (fp = factors; size >= 1024 && fp[1] != NULL; fp++)
       size /= 1024;

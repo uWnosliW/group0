@@ -19,13 +19,13 @@
 #include <termios.h>
 #include <unistd.h>
 
-static void fail_io(const char *msg, ...) __attribute__((noreturn))
+static void fail_io(const char* msg, ...) __attribute__((noreturn))
 __attribute__((format(printf, 1, 2)));
 
 /* Prints MSG, formatting as with printf(),
    plus an error message based on errno,
    and exits. */
-static void fail_io(const char *msg, ...) {
+static void fail_io(const char* msg, ...) {
   va_list args;
 
   va_start(args, msg);
@@ -73,7 +73,7 @@ static void make_nonblocking(int fd, bool nonblocking) {
    indication RETVAL.  The system call is named CALL, for use in
    error messages.  Returns true if processing may continue,
    false if we're all done. */
-static bool handle_error(ssize_t retval, int *fd, bool fd_is_sock, const char *call) {
+static bool handle_error(ssize_t retval, int* fd, bool fd_is_sock, const char* call) {
   if (retval == 0) {
     if (fd_is_sock)
       return false;
@@ -124,7 +124,7 @@ static void relay(int sock) {
     FD_ZERO(&read_fds);
     FD_ZERO(&write_fds);
     for (i = 0; i < 2; i++) {
-      struct pipe *p = &pipes[i];
+      struct pipe* p = &pipes[i];
 
       /* Don't do anything with the stdin->sock pipe until we
              have some data for the sock->stdout pipe.  If we get
@@ -142,7 +142,7 @@ static void relay(int sock) {
     if (retval < 0) {
       if (errno == EINTR) {
         /* Child died.  Do final relaying. */
-        struct pipe *p = &pipes[1];
+        struct pipe* p = &pipes[1];
         if (p->out == -1)
           exit(0);
         make_nonblocking(STDOUT_FILENO, false);
@@ -170,7 +170,7 @@ static void relay(int sock) {
     }
 
     for (i = 0; i < 2; i++) {
-      struct pipe *p = &pipes[i];
+      struct pipe* p = &pipes[i];
       if (p->in != -1 && FD_ISSET(p->in, &read_fds)) {
         ssize_t n = read(p->in, p->buf + p->ofs + p->size, sizeof p->buf - p->ofs - p->size);
         if (n > 0) {
@@ -200,7 +200,7 @@ static void relay(int sock) {
 static void sigchld_handler(int signo __attribute__((unused))) { /* Nothing to do. */
 }
 
-int main(int argc __attribute__((unused)), char *argv[]) {
+int main(int argc __attribute__((unused)), char* argv[]) {
   pid_t pid;
   struct itimerval zero_itimerval;
   struct sockaddr_un sun;
@@ -225,7 +225,7 @@ int main(int argc __attribute__((unused)), char *argv[]) {
   sun.sun_path[sizeof sun.sun_path - 1] = '\0';
   if (unlink(sun.sun_path) < 0 && errno != ENOENT)
     fail_io("unlink");
-  if (bind(sock, (struct sockaddr *)&sun,
+  if (bind(sock, (struct sockaddr*)&sun,
            (offsetof(struct sockaddr_un, sun_path) + strlen(sun.sun_path) + 1)) < 0)
     fail_io("bind");
 

@@ -35,7 +35,7 @@ void kbd_print_stats(void) { printf("Keyboard: %lld keys pressed\n", key_cnt); }
 /* Maps a set of contiguous scancodes into characters. */
 struct keymap {
   uint8_t first_scancode; /* First scancode. */
-  const char *chars;      /* chars[0] has scancode first_scancode,
+  const char* chars;      /* chars[0] has scancode first_scancode,
                                    chars[1] has scancode first_scancode + 1,
                                    and so on to the end of the string. */
 };
@@ -63,9 +63,9 @@ static const struct keymap shifted_keymap[] = {
     {0x02, "!@#$%^&*()_+"}, {0x1a, "{}"}, {0x27, ":\"~"}, {0x2b, "|"}, {0x33, "<>?"}, {0, NULL},
 };
 
-static bool map_key(const struct keymap[], unsigned scancode, uint8_t *);
+static bool map_key(const struct keymap[], unsigned scancode, uint8_t*);
 
-static void keyboard_interrupt(struct intr_frame *args UNUSED) {
+static void keyboard_interrupt(struct intr_frame* args UNUSED) {
   /* Status of shift keys. */
   bool shift = left_shift || right_shift;
   bool alt = left_alt || right_alt;
@@ -128,7 +128,7 @@ static void keyboard_interrupt(struct intr_frame *args UNUSED) {
     /* Maps a keycode into a shift state variable. */
     struct shift_key {
       unsigned scancode;
-      bool *state_var;
+      bool* state_var;
     };
 
     /* Table of shift keys. */
@@ -137,7 +137,7 @@ static void keyboard_interrupt(struct intr_frame *args UNUSED) {
         {0x1d, &left_ctrl},  {0xe01d, &right_ctrl}, {0, NULL},
     };
 
-    const struct shift_key *key;
+    const struct shift_key* key;
 
     /* Scan the table. */
     for (key = shift_keys; key->scancode != 0; key++)
@@ -152,7 +152,7 @@ static void keyboard_interrupt(struct intr_frame *args UNUSED) {
    If found, sets *C to the corresponding character and returns
    true.
    If not found, returns false and C is ignored. */
-static bool map_key(const struct keymap k[], unsigned scancode, uint8_t *c) {
+static bool map_key(const struct keymap k[], unsigned scancode, uint8_t* c) {
   for (; k->first_scancode != 0; k++)
     if (scancode >= k->first_scancode && scancode < k->first_scancode + strlen(k->chars)) {
       *c = k->chars[scancode - k->first_scancode];

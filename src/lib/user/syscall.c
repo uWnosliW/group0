@@ -76,23 +76,23 @@ void exit(int status) {
   NOT_REACHED();
 }
 
-pid_t exec(const char *file) { return (pid_t)syscall1(SYS_EXEC, file); }
+pid_t exec(const char* file) { return (pid_t)syscall1(SYS_EXEC, file); }
 
 int wait(pid_t pid) { return syscall1(SYS_WAIT, pid); }
 
-bool create(const char *file, unsigned initial_size) {
+bool create(const char* file, unsigned initial_size) {
   return syscall2(SYS_CREATE, file, initial_size);
 }
 
-bool remove(const char *file) { return syscall1(SYS_REMOVE, file); }
+bool remove(const char* file) { return syscall1(SYS_REMOVE, file); }
 
-int open(const char *file) { return syscall1(SYS_OPEN, file); }
+int open(const char* file) { return syscall1(SYS_OPEN, file); }
 
 int filesize(int fd) { return syscall1(SYS_FILESIZE, fd); }
 
-int read(int fd, void *buffer, unsigned size) { return syscall3(SYS_READ, fd, buffer, size); }
+int read(int fd, void* buffer, unsigned size) { return syscall3(SYS_READ, fd, buffer, size); }
 
-int write(int fd, const void *buffer, unsigned size) {
+int write(int fd, const void* buffer, unsigned size) {
   return syscall3(SYS_WRITE, fd, buffer, size);
 }
 
@@ -102,13 +102,13 @@ unsigned tell(int fd) { return syscall1(SYS_TELL, fd); }
 
 void close(int fd) { syscall1(SYS_CLOSE, fd); }
 
-mapid_t mmap(int fd, void *addr) { return syscall2(SYS_MMAP, fd, addr); }
+mapid_t mmap(int fd, void* addr) { return syscall2(SYS_MMAP, fd, addr); }
 
 void munmap(mapid_t mapid) { syscall1(SYS_MUNMAP, mapid); }
 
-bool chdir(const char *dir) { return syscall1(SYS_CHDIR, dir); }
+bool chdir(const char* dir) { return syscall1(SYS_CHDIR, dir); }
 
-bool mkdir(const char *dir) { return syscall1(SYS_MKDIR, dir); }
+bool mkdir(const char* dir) { return syscall1(SYS_MKDIR, dir); }
 
 bool readdir(int fd, char name[READDIR_MAX_LEN + 1]) { return syscall2(SYS_READDIR, fd, name); }
 
@@ -118,7 +118,7 @@ int inumber(int fd) { return syscall1(SYS_INUMBER, fd); }
 
 double compute_e(int n) { return (double)syscall1f(SYS_COMPUTE_E, n); }
 
-tid_t sys_pthread_create(stub_fun sfun, pthread_fun tfun, const void *arg) {
+tid_t sys_pthread_create(stub_fun sfun, pthread_fun tfun, const void* arg) {
   return syscall3(SYS_PT_CREATE, sfun, tfun, arg);
 }
 
@@ -129,29 +129,29 @@ void sys_pthread_exit() {
 
 tid_t sys_pthread_join(tid_t tid) { return syscall1(SYS_PT_JOIN, tid); }
 
-bool lock_init(lock_t *lock) { return syscall1(SYS_LOCK_INIT, lock); }
+bool lock_init(lock_t* lock) { return syscall1(SYS_LOCK_INIT, lock); }
 
-void lock_acquire(lock_t *lock) {
+void lock_acquire(lock_t* lock) {
   bool success = syscall1(SYS_LOCK_ACQUIRE, lock);
   if (!success)
     exit(1);
 }
 
-void lock_release(lock_t *lock) {
+void lock_release(lock_t* lock) {
   bool success = syscall1(SYS_LOCK_RELEASE, lock);
   if (!success)
     exit(1);
 }
 
-bool sema_init(sema_t *sema, int val) { return syscall2(SYS_SEMA_INIT, sema, val); }
+bool sema_init(sema_t* sema, int val) { return syscall2(SYS_SEMA_INIT, sema, val); }
 
-void sema_down(sema_t *sema) {
+void sema_down(sema_t* sema) {
   bool success = syscall1(SYS_SEMA_DOWN, sema);
   if (!success)
     exit(1);
 }
 
-void sema_up(sema_t *sema) {
+void sema_up(sema_t* sema) {
   bool success = syscall1(SYS_SEMA_UP, sema);
   if (!success)
     exit(1);

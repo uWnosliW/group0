@@ -12,7 +12,7 @@
 #include <string.h>
 #include <syscall.h>
 
-static bool list_dir(const char *dir, bool verbose) {
+static bool list_dir(const char* dir, bool verbose) {
   int dir_fd = open(dir);
   if (dir_fd == -1) {
     printf("%s: not found\n", dir);
@@ -55,7 +55,7 @@ static bool list_dir(const char *dir, bool verbose) {
   return true;
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
   bool success = true;
   bool verbose = false;
 

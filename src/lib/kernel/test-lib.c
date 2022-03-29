@@ -4,12 +4,12 @@
 
 /* Global variable overridden by each test so that functions
    in this library can print test names */
-const char *test_name = NULL;
+const char* test_name = NULL;
 
 /* Prints FORMAT as if with printf(),
    prefixing the output by the name of the test
    and following it with a new-line character. */
-void msg(const char *format, ...) {
+void msg(const char* format, ...) {
   va_list args;
 
   printf("(%s) ", test_name);
@@ -23,7 +23,7 @@ void msg(const char *format, ...) {
    prefixing the output by the name of the test and FAIL:
    and following it with a new-line character,
    and then panics the kernel. */
-void fail(const char *format, ...) {
+void fail(const char* format, ...) {
   va_list args;
 
   printf("(%s) FAIL: ", test_name);

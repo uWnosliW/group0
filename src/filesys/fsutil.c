@@ -12,8 +12,8 @@
 #include <ustar.h>
 
 /* List files in the root directory. */
-void fsutil_ls(char **argv UNUSED) {
-  struct dir *dir;
+void fsutil_ls(char** argv UNUSED) {
+  struct dir* dir;
   char name[NAME_MAX + 1];
 
   printf("Files in the root directory:\n");
@@ -28,11 +28,11 @@ void fsutil_ls(char **argv UNUSED) {
 
 /* Prints the contents of file ARGV[1] to the system console as
    hex and ASCII. */
-void fsutil_cat(char **argv) {
-  const char *file_name = argv[1];
+void fsutil_cat(char** argv) {
+  const char* file_name = argv[1];
 
-  struct file *file;
-  char *buffer;
+  struct file* file;
+  char* buffer;
 
   printf("Printing '%s' to the console...\n", file_name);
   file = filesys_open(file_name);
@@ -52,8 +52,8 @@ void fsutil_cat(char **argv) {
 }
 
 /* Deletes file ARGV[1]. */
-void fsutil_rm(char **argv) {
-  const char *file_name = argv[1];
+void fsutil_rm(char** argv) {
+  const char* file_name = argv[1];
 
   printf("Deleting '%s'...\n", file_name);
   if (!filesys_remove(file_name))
@@ -62,10 +62,10 @@ void fsutil_rm(char **argv) {
 
 /* Extracts a ustar-format tar archive from the scratch block
    device into the Pintos file system. */
-void fsutil_extract(char **argv UNUSED) {
+void fsutil_extract(char** argv UNUSED) {
   static block_sector_t sector = 0;
 
-  struct block *src;
+  struct block* src;
   void *header, *data;
 
   /* Allocate buffers. */
@@ -83,8 +83,8 @@ void fsutil_extract(char **argv UNUSED) {
          "into file system...\n");
 
   for (;;) {
-    const char *file_name;
-    const char *error;
+    const char* file_name;
+    const char* error;
     enum ustar_type type;
     int size;
 
@@ -100,7 +100,7 @@ void fsutil_extract(char **argv UNUSED) {
     } else if (type == USTAR_DIRECTORY)
       printf("ignoring directory %s\n", file_name);
     else if (type == USTAR_REGULAR) {
-      struct file *dst;
+      struct file* dst;
 
       printf("Putting '%s' into the file system...\n", file_name);
 
@@ -146,13 +146,13 @@ void fsutil_extract(char **argv UNUSED) {
    the device.  This position is independent of that used for
    fsutil_extract(), so `extract' should precede all
    `append's. */
-void fsutil_append(char **argv) {
+void fsutil_append(char** argv) {
   static block_sector_t sector = 0;
 
-  const char *file_name = argv[1];
-  void *buffer;
-  struct file *src;
-  struct block *dst;
+  const char* file_name = argv[1];
+  void* buffer;
+  struct file* src;
+  struct block* dst;
   off_t size;
 
   printf("Appending '%s' to ustar archive on scratch device...\n", file_name);

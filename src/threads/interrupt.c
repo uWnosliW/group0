@@ -31,10 +31,10 @@
 static uint64_t idt[INTR_CNT];
 
 /* Interrupt handler functions for each interrupt. */
-static intr_handler_func *intr_handlers[INTR_CNT];
+static intr_handler_func* intr_handlers[INTR_CNT];
 
 /* Names for each interrupt, for debugging purposes. */
-static const char *intr_names[INTR_CNT];
+static const char* intr_names[INTR_CNT];
 
 /* Number of unexpected interrupts for each vector.  An
    unexpected interrupt is one that has no registered handler. */
@@ -57,11 +57,11 @@ static void pic_end_of_interrupt(int irq);
 /* Interrupt Descriptor Table helpers. */
 static uint64_t make_intr_gate(void (*)(void), int dpl);
 static uint64_t make_trap_gate(void (*)(void), int dpl);
-static inline uint64_t make_idtr_operand(uint16_t limit, void *base);
+static inline uint64_t make_idtr_operand(uint16_t limit, void* base);
 
 /* Interrupt handlers. */
-void intr_handler(struct intr_frame *args);
-static void unexpected_interrupt(const struct intr_frame *);
+void intr_handler(struct intr_frame* args);
+static void unexpected_interrupt(const struct intr_frame*);
 
 /* Returns the current interrupt status. */
 enum intr_level intr_get_level(void) {
@@ -155,7 +155,7 @@ void intr_init(void) {
    purposes.  The interrupt handler will be invoked with
    interrupt status set to LEVEL. */
 static void register_handler(uint8_t vec_no, int dpl, enum intr_level level,
-                             intr_handler_func *handler, const char *name) {
+                             intr_handler_func* handler, const char* name) {
   ASSERT(intr_handlers[vec_no] == NULL);
   if (level == INTR_ON)
     idt[vec_no] = make_trap_gate(intr_stubs[vec_no], dpl);
@@ -168,7 +168,7 @@ static void register_handler(uint8_t vec_no, int dpl, enum intr_level level,
 /* Registers external interrupt VEC_NO to invoke HANDLER, which
    is named NAME for debugging purposes.  The handler will
    execute with interrupts disabled. */
-void intr_register_ext(uint8_t vec_no, intr_handler_func *handler, const char *name) {
+void intr_register_ext(uint8_t vec_no, intr_handler_func* handler, const char* name) {
   ASSERT(vec_no >= 0x20 && vec_no <= 0x2f);
   register_handler(vec_no, 0, INTR_OFF, handler, name);
 }
@@ -186,8 +186,8 @@ void intr_register_ext(uint8_t vec_no, intr_handler_func *handler, const char *n
    [IA32-v3a] sections 4.5 "Privilege Levels" and 4.8.1.1
    "Accessing Nonconforming Code Segments" for further
    discussion. */
-void intr_register_int(uint8_t vec_no, int dpl, enum intr_level level, intr_handler_func *handler,
-                       const char *name) {
+void intr_register_int(uint8_t vec_no, int dpl, enum intr_level level, intr_handler_func* handler,
+                       const char* name) {
   ASSERT(vec_no < 0x20 || vec_no > 0x2f);
   register_handler(vec_no, dpl, level, handler, name);
 }
@@ -299,13 +299,13 @@ static uint64_t make_trap_gate(void (*function)(void), int dpl) {
 
 /* Returns a descriptor that yields the given LIMIT and BASE when
    used as an operand for the LIDT instruction. */
-static inline uint64_t make_idtr_operand(uint16_t limit, void *base) {
+static inline uint64_t make_idtr_operand(uint16_t limit, void* base) {
   return limit | ((uint64_t)(uint32_t)base << 16);
 }
 
 /* Returns true if this trap to the OS was from userspace */
 #ifdef USERPROG
-static inline bool is_trap_from_userspace(struct intr_frame *frame) {
+static inline bool is_trap_from_userspace(struct intr_frame* frame) {
   return (frame->cs == SEL_UCSEG) && (frame->ss == SEL_UDSEG);
 }
 #endif
@@ -316,9 +316,9 @@ static inline bool is_trap_from_userspace(struct intr_frame *frame) {
    function is called by the assembly language interrupt stubs in
    intr-stubs.S.  FRAME describes the interrupt and the
    interrupted thread's registers. */
-void intr_handler(struct intr_frame *frame) {
+void intr_handler(struct intr_frame* frame) {
   bool external;
-  intr_handler_func *handler;
+  intr_handler_func* handler;
 
   /* External interrupts are special.
      We only handle one at a time (so interrupts must be off)
@@ -359,7 +359,7 @@ void intr_handler(struct intr_frame *frame) {
 
 /* Handles an unexpected interrupt with interrupt frame F.  An
    unexpected interrupt is one that has no registered handler. */
-static void unexpected_interrupt(const struct intr_frame *f) {
+static void unexpected_interrupt(const struct intr_frame* f) {
   /* Count the number so far. */
   unsigned int n = ++unexpected_cnt[f->vec_no];
 
@@ -373,7 +373,7 @@ static void unexpected_interrupt(const struct intr_frame *f) {
 }
 
 /* Dumps interrupt frame F to the console, for debugging. */
-void intr_dump_frame(const struct intr_frame *f) {
+void intr_dump_frame(const struct intr_frame* f) {
   uint32_t cr2;
 
   /* Store current value of CR2 into `cr2'.
@@ -394,4 +394,4 @@ void intr_dump_frame(const struct intr_frame *f) {
 }
 
 /* Returns the name of interrupt VEC. */
-const char *intr_name(uint8_t vec) { return intr_names[vec]; }
+const char* intr_name(uint8_t vec) { return intr_names[vec]; }

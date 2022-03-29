@@ -5,10 +5,10 @@
 
 /* The standard vprintf() function,
    which is like printf() but uses a va_list. */
-int vprintf(const char *format, va_list args) { return vhprintf(STDOUT_FILENO, format, args); }
+int vprintf(const char* format, va_list args) { return vhprintf(STDOUT_FILENO, format, args); }
 
 /* Like printf(), but writes output to the given HANDLE. */
-int hprintf(int handle, const char *format, ...) {
+int hprintf(int handle, const char* format, ...) {
   va_list args;
   int retval;
 
@@ -21,7 +21,7 @@ int hprintf(int handle, const char *format, ...) {
 
 /* Writes string S to the console, followed by a new-line
    character. */
-int puts(const char *s) {
+int puts(const char* s) {
   write(STDOUT_FILENO, s, strlen(s));
   putchar('\n');
 
@@ -38,18 +38,18 @@ int putchar(int c) {
 /* Auxiliary data for vhprintf_helper(). */
 struct vhprintf_aux {
   char buf[64]; /* Character buffer. */
-  char *p;      /* Current position in buffer. */
+  char* p;      /* Current position in buffer. */
   int char_cnt; /* Total characters written so far. */
   int handle;   /* Output file handle. */
 };
 
-static void add_char(char, void *);
-static void flush(struct vhprintf_aux *);
+static void add_char(char, void*);
+static void flush(struct vhprintf_aux*);
 
 /* Formats the printf() format specification FORMAT with
    arguments given in ARGS and writes the output to the given
    HANDLE. */
-int vhprintf(int handle, const char *format, va_list args) {
+int vhprintf(int handle, const char* format, va_list args) {
   struct vhprintf_aux aux;
   aux.p = aux.buf;
   aux.char_cnt = 0;
@@ -61,8 +61,8 @@ int vhprintf(int handle, const char *format, va_list args) {
 
 /* Adds C to the buffer in AUX, flushing it if the buffer fills
    up. */
-static void add_char(char c, void *aux_) {
-  struct vhprintf_aux *aux = aux_;
+static void add_char(char c, void* aux_) {
+  struct vhprintf_aux* aux = aux_;
   *aux->p++ = c;
   if (aux->p >= aux->buf + sizeof aux->buf)
     flush(aux);
@@ -70,7 +70,7 @@ static void add_char(char c, void *aux_) {
 }
 
 /* Flushes the buffer in AUX. */
-static void flush(struct vhprintf_aux *aux) {
+static void flush(struct vhprintf_aux* aux) {
   if (aux->p > aux->buf)
     write(aux->handle, aux->buf, aux->p - aux->buf);
   aux->p = aux->buf;

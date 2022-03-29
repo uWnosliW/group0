@@ -42,7 +42,7 @@
 #endif
 
 /* Page directory with kernel mappings only. */
-uint32_t *init_page_dir;
+uint32_t* init_page_dir;
 
 #ifdef FILESYS
 /* -f: Format the file system? */
@@ -50,10 +50,10 @@ static bool format_filesys;
 
 /* -filesys, -scratch, -swap: Names of block devices to use,
    overriding the defaults. */
-static const char *filesys_bdev_name;
-static const char *scratch_bdev_name;
+static const char* filesys_bdev_name;
+static const char* scratch_bdev_name;
 #ifdef VM
-static const char *swap_bdev_name;
+static const char* swap_bdev_name;
 #endif
 #endif /* FILESYS */
 
@@ -63,19 +63,19 @@ static size_t user_page_limit = SIZE_MAX;
 static void bss_init(void);
 static void paging_init(void);
 
-static char **read_command_line(void);
-static char **parse_options(char **argv);
-static void run_actions(char **argv);
+static char** read_command_line(void);
+static char** parse_options(char** argv);
+static void run_actions(char** argv);
 static void usage(void);
 
 #ifdef FILESYS
 static void locate_block_devices(void);
-static void locate_block_device(enum block_type, const char *name);
+static void locate_block_device(enum block_type, const char* name);
 #endif
 
 /* Pintos main program. */
 int main(void) {
-  char **argv;
+  char** argv;
 
   /* Clear BSS. */
   bss_init();
@@ -164,7 +164,7 @@ static void paging_init(void) {
   pt = NULL;
   for (page = 0; page < init_ram_pages; page++) {
     uintptr_t paddr = page * PGSIZE;
-    char *vaddr = ptov(paddr);
+    char* vaddr = ptov(paddr);
     size_t pde_idx = pd_no(vaddr);
     size_t pte_idx = pt_no(vaddr);
     bool in_kernel_text = &_start <= vaddr && vaddr < &_end_kernel_text;
@@ -187,13 +187,13 @@ static void paging_init(void) {
 
 /* Breaks the kernel command line into words and returns them as
    an argv-like array. */
-static char **read_command_line(void) {
-  static char *argv[LOADER_ARGS_LEN / 2 + 1];
+static char** read_command_line(void) {
+  static char* argv[LOADER_ARGS_LEN / 2 + 1];
   char *p, *end;
   int argc;
   int i;
 
-  argc = *(uint32_t *)ptov(LOADER_ARG_CNT);
+  argc = *(uint32_t*)ptov(LOADER_ARG_CNT);
   p = ptov(LOADER_ARGS);
   end = p + LOADER_ARGS_LEN;
   for (i = 0; i < argc; i++) {
@@ -219,13 +219,13 @@ static char **read_command_line(void) {
 
 /* Parses options in ARGV[]
    and returns the first non-option argument. */
-static char **parse_options(char **argv) {
+static char** parse_options(char** argv) {
   bool scheduler_flags[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 
   for (; *argv != NULL && **argv == '-'; argv++) {
-    char *save_ptr;
-    char *name = strtok_r(*argv, "=", &save_ptr);
-    char *value = strtok_r(NULL, "", &save_ptr);
+    char* save_ptr;
+    char* name = strtok_r(*argv, "=", &save_ptr);
+    char* value = strtok_r(NULL, "", &save_ptr);
 
     if (!strcmp(name, "-h"))
       usage();
@@ -307,8 +307,8 @@ static char **parse_options(char **argv) {
 }
 
 /* Runs the task specified in ARGV[1]. */
-static void run_task(char **argv) {
-  const char *task = argv[1];
+static void run_task(char** argv) {
+  const char* task = argv[1];
 
   printf("Executing '%s':\n", task);
 #ifdef USERPROG
@@ -318,8 +318,8 @@ static void run_task(char **argv) {
 }
 
 /* Runs the userprog kernel task specified in ARGV[1]. */
-static void run_userprog_kernel_task(char **argv) {
-  const char *task = argv[1];
+static void run_userprog_kernel_task(char** argv) {
+  const char* task = argv[1];
 
   printf("Executing '%s':\n", task);
 #ifdef USERPROG
@@ -330,8 +330,8 @@ static void run_userprog_kernel_task(char **argv) {
 
 #ifdef THREADS
 /* Runs the threads kernel task specified in ARGV[1]. */
-static void run_threads_kernel_task(char **argv) {
-  const char *task = argv[1];
+static void run_threads_kernel_task(char** argv) {
+  const char* task = argv[1];
 
   printf("Executing '%s':\n", task);
   run_threads_test(task);
@@ -341,12 +341,12 @@ static void run_threads_kernel_task(char **argv) {
 
 /* Executes all of the actions specified in ARGV[]
    up to the null pointer sentinel. */
-static void run_actions(char **argv) {
+static void run_actions(char** argv) {
   /* An action. */
   struct action {
-    char *name;                    /* Action name. */
+    char* name;                    /* Action name. */
     int argc;                      /* # of args, including action name. */
-    void (*function)(char **argv); /* Function to execute action. */
+    void (*function)(char** argv); /* Function to execute action. */
   };
 
   /* Table of supported actions. */
@@ -369,7 +369,7 @@ static void run_actions(char **argv) {
   };
 
   while (*argv != NULL) {
-    const struct action *a;
+    const struct action* a;
     int i;
 
     /* Find action name. */
@@ -452,8 +452,8 @@ static void locate_block_devices(void) {
    block device with the given NAME, if NAME is non-null,
    otherwise the first block device in probe order of type
    ROLE. */
-static void locate_block_device(enum block_type role, const char *name) {
-  struct block *block = NULL;
+static void locate_block_device(enum block_type role, const char* name) {
+  struct block* block = NULL;
 
   if (name != NULL) {
     block = block_get_by_name(name);

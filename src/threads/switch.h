@@ -10,14 +10,14 @@ struct switch_threads_frame {
   uint32_t ebp;        /* 116: Saved %ebp. */
   uint32_t ebx;        /* 120: Saved %ebx. */
   void (*eip)(void);   /* 124: Return address. */
-  struct thread *cur;  /* 128: switch_threads()'s CUR argument. */
-  struct thread *next; /* 132: switch_threads()'s NEXT argument. */
+  struct thread* cur;  /* 128: switch_threads()'s CUR argument. */
+  struct thread* next; /* 132: switch_threads()'s NEXT argument. */
 };
 
 /* Switches from CUR, which must be the running thread, to NEXT,
    which must also be running switch_threads(), returning CUR in
    NEXT's context. */
-struct thread *switch_threads(struct thread *cur, struct thread *next);
+struct thread* switch_threads(struct thread* cur, struct thread* next);
 
 /* Stack frame for switch_entry(). */
 struct switch_entry_frame {

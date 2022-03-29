@@ -29,7 +29,7 @@ static unsigned loops_per_tick;
 /* Information about sleeping threads */
 static struct sleeping_thread {
   struct list_elem elem;
-  struct thread *thread_ptr;
+  struct thread* thread_ptr;
   int64_t wakeup_time;
 };
 
@@ -89,9 +89,9 @@ int64_t timer_ticks(void) {
 int64_t timer_elapsed(int64_t then) { return timer_ticks() - then; }
 
 /* Helper function for inserting threads into the sleeping thread list in order of wakeup time */
-static bool wakeup_less(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED) {
-  struct sleeping_thread *thread_a = list_entry(a, struct sleeping_thread, elem);
-  struct sleeping_thread *thread_b = list_entry(b, struct sleeping_thread, elem);
+static bool wakeup_less(const struct list_elem* a, const struct list_elem* b, void* aux UNUSED) {
+  struct sleeping_thread* thread_a = list_entry(a, struct sleeping_thread, elem);
+  struct sleeping_thread* thread_b = list_entry(b, struct sleeping_thread, elem);
 
   return thread_a->wakeup_time < thread_b->wakeup_time;
 }
@@ -107,7 +107,7 @@ void timer_sleep(int64_t ticks) {
    * re-enable interrupts */
   enum intr_level old_level = intr_disable();
 
-  struct thread *t = thread_current();
+  struct thread* t = thread_current();
 
   struct sleeping_thread new_sleeping_thread; // = malloc(sizeof(struct sleeping_thread));
   new_sleeping_thread.thread_ptr = t;
@@ -163,19 +163,19 @@ void timer_ndelay(int64_t ns) { real_time_delay(ns, 1000 * 1000 * 1000); }
 void timer_print_stats(void) { printf("Timer: %" PRId64 " ticks\n", timer_ticks()); }
 
 /* Timer interrupt handler. */
-static void timer_interrupt(struct intr_frame *args UNUSED) {
+static void timer_interrupt(struct intr_frame* args UNUSED) {
   ticks++;
   thread_tick();
 
   /* Iterate through sleeping threads list, waking threads up if we're past their wakeup time */
   while (!list_empty(&sleeping_thread_list)) {
-    struct list_elem *front_elem = list_begin(&sleeping_thread_list);
-    struct sleeping_thread *front_sleeping_thread =
+    struct list_elem* front_elem = list_begin(&sleeping_thread_list);
+    struct sleeping_thread* front_sleeping_thread =
         list_entry(front_elem, struct sleeping_thread, elem);
 
     if (ticks >= front_sleeping_thread->wakeup_time) {
       list_pop_front(&sleeping_thread_list);
-      struct thread *t = front_sleeping_thread->thread_ptr;
+      struct thread* t = front_sleeping_thread->thread_ptr;
 
       /* Yield if the thread woken up has higher priority than the current thread */
       if (thread_get_eprio(t) > thread_get_priority())

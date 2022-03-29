@@ -38,22 +38,22 @@ enum block_type {
   BLOCK_CNT                   /* Number of Pintos block types. */
 };
 
-const char *block_type_name(enum block_type);
+const char* block_type_name(enum block_type);
 
 /* Finding block devices. */
-struct block *block_get_role(enum block_type);
-void block_set_role(enum block_type, struct block *);
-struct block *block_get_by_name(const char *name);
+struct block* block_get_role(enum block_type);
+void block_set_role(enum block_type, struct block*);
+struct block* block_get_by_name(const char* name);
 
-struct block *block_first(void);
-struct block *block_next(struct block *);
+struct block* block_first(void);
+struct block* block_next(struct block*);
 
 /* Block device operations. */
-block_sector_t block_size(struct block *);
-void block_read(struct block *, block_sector_t, void *);
-void block_write(struct block *, block_sector_t, const void *);
-const char *block_name(struct block *);
-enum block_type block_type(struct block *);
+block_sector_t block_size(struct block*);
+void block_read(struct block*, block_sector_t, void*);
+void block_write(struct block*, block_sector_t, const void*);
+const char* block_name(struct block*);
+enum block_type block_type(struct block*);
 
 /* Statistics. */
 void block_print_stats(void);
@@ -61,11 +61,11 @@ void block_print_stats(void);
 /* Lower-level interface to block device drivers. */
 
 struct block_operations {
-  void (*read)(void *aux, block_sector_t, void *buffer);
-  void (*write)(void *aux, block_sector_t, const void *buffer);
+  void (*read)(void* aux, block_sector_t, void* buffer);
+  void (*write)(void* aux, block_sector_t, const void* buffer);
 };
 
-struct block *block_register(const char *name, enum block_type, const char *extra_info,
-                             block_sector_t size, const struct block_operations *, void *aux);
+struct block* block_register(const char* name, enum block_type, const char* extra_info,
+                             block_sector_t size, const struct block_operations*, void* aux);
 
 #endif /* devices/block.h */
