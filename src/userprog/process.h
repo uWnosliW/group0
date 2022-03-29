@@ -60,14 +60,14 @@ struct join_status {
   struct list_elem elem;
   tid_t tid;
   struct semaphore finished;
-}
+};
 
 struct start_pthread_arg {
   stub_fun sf;
   pthread_fun tf;
   void* tf_arg;
   struct join_status* status;
-}
+};
 // END USER THREADS //
 
 /* Information about the thread to be started */

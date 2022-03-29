@@ -231,7 +231,7 @@ static void start_process(void* args_) {
     list_init(&t->pcb->join_statuses);
     list_init(&t->pcb->current_threads);
 
-    is_dying = false;
+    t->pcb->is_dying = false;
   }
 
   /* Initialize interrupt frame and load executable. */
