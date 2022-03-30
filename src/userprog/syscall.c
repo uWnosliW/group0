@@ -373,6 +373,22 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
       break;
     }
 
+    case SYS_PT_CREATE: {
+      // if (!is_valid_buffer((void*)args[1], 4) ||
+      //     !is_valid_buffer((void*)args[2], 4) ||
+      //     !is_valid_buffer((void*)args[3], 4)) {
+      //   f->eax = TID_ERROR;
+      //   break;
+      // }
+
+      stub_fun sf = args[1];
+      pthread_fun tf = args[2];
+      void* arg = args[3];
+
+      f->eax = pthread_execute(sf, tf, arg);
+      break;
+    }
+
     case SYS_PT_EXIT: {
       PANIC("Syscall is not implemented");
     }
@@ -384,6 +400,7 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
     case SYS_LOCK_INIT: {
       struct process* pcb = thread_current()->pcb;
 
+      /* Too many locks or lock pointer was NULL */
       if (pcb->num_locks == 128 || args[1] == 0) {
         f->eax = false;
         break;
@@ -405,11 +422,13 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
       int lock_num = *((char*)args[1]);
       struct process* pcb = thread_current()->pcb;
 
+      /* No acquiring locks that haven't been initialized */
       if (pcb->locks[lock_num] == NULL) {
         f->eax = false;
         break;
       }
 
+      /* No double acquires */
       if (pcb->locks[lock_num]->holder == thread_current()) {
         f->eax = false;
         break;
@@ -424,11 +443,13 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
       int lock_num = *((char*)args[1]);
       struct process* pcb = thread_current()->pcb;
 
+      /* No releasing locks that haven't been initialized */
       if (pcb->locks[lock_num] == NULL) {
         f->eax = false;
         break;
       }
 
+      /* No releasing locks not owned by this thread */
       if (pcb->locks[lock_num]->holder != thread_current()) {
         f->eax = false;
         break;
@@ -489,7 +510,7 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
     }
 
     case SYS_GET_TID: {
-      PANIC("Syscall is not implemented");
+      f->eax = thread_current()->tid;
     }
 
     default: { PANIC("Syscall is not implemented"); }

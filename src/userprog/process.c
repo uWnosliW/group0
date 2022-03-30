@@ -817,12 +817,16 @@ bool setup_thread(void (**eip)(void), void** esp, stub_fun sf, pthread_fun tf, v
   if (kpage == NULL)
     return false;
 
-  for (int32_t* page_addr = PHYS_BASE - PGSIZE; page_addr >= 0; page_addr -= PGSIZE) {
-    bool success = install_page((uint8_t*)page_addr, kpage, true);
+  for (uint32_t page_addr = (uint8_t*)PHYS_BASE - PGSIZE; page_addr >= 0; page_addr -= PGSIZE) {
+    bool success = install_page((void*)page_addr, kpage, true);
     if (success) {
-      *esp = page_addr + PGSIZE;
-      // NOTE: mismatching fn ptr signatures
       *eip = (void (*)(void))sf;
+      *esp = page_addr + PGSIZE - 8; // TODO: maybe set to 12
+
+      memcpy(*esp + 8, &arg, 4);
+      memcpy(*esp + 4, &tf, 4);
+      // memset(*esp, 0, 4);
+
       return true;
     }
   }
@@ -849,19 +853,17 @@ tid_t pthread_execute(stub_fun sf, pthread_fun tf, void* arg) {
   struct process* pcb = thread_current()->pcb;
 
   list_push_back(&pcb->current_threads, &thread_status->elem);
-  sema_init(&thread_status, 0);
+  sema_init(&thread_status->init_finished, 0);
   arc_init_with(thread_status, 2);
 
-  struct semaphore wait_sema;
-  sema_init(&wait_sema, 0);
-
   struct start_pthread_arg* thread_arg = malloc(sizeof(struct start_pthread_arg));
-  if (thread_arg) {
+  if (thread_arg == NULL) {
     free(thread_status);
     free(thread_arg);
     return TID_ERROR;
   }
 
+  thread_arg->pcb = pcb;
   thread_arg->sf = sf;
   thread_arg->tf = tf;
   thread_arg->tf_arg = arg;
@@ -890,6 +892,7 @@ static void start_pthread(void* exec_) {
   /* Unpacking args */
   struct start_pthread_arg* thread_arg = (struct start_pthread_arg*)exec_;
 
+  struct process* pcb = thread_arg->pcb;
   stub_fun sf = thread_arg->sf;
   pthread_fun tf = thread_arg->tf;
   void* tf_arg = thread_arg->tf_arg;
@@ -897,6 +900,8 @@ static void start_pthread(void* exec_) {
 
   struct thread* t = thread_current();
   thread_status->tid = t->tid;
+  t->pcb = pcb;
+  process_activate();
 
   /* Initialize interrupt frame / setup user stack */
   struct intr_frame if_;
@@ -906,7 +911,7 @@ static void start_pthread(void* exec_) {
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
 
-  bool user_stack_success = setup_thread(if_.esp, if_.eip, sf, tf, tf_arg);
+  bool user_stack_success = setup_thread(&if_.eip, &if_.esp, sf, tf, tf_arg);
   if (!user_stack_success) {
     free(thread_status);
     thread_exit();

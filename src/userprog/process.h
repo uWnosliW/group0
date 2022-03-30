@@ -64,6 +64,7 @@ struct join_status {
 };
 
 struct start_pthread_arg {
+  struct process* pcb;
   stub_fun sf;
   pthread_fun tf;
   void* tf_arg;
