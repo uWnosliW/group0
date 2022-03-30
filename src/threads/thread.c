@@ -213,21 +213,11 @@ tid_t thread_create(const char* name, int priority, thread_func* function, void*
   asm volatile("fsave (%0)" : : "g"(&sf->fpu)); // save newly inited fpu for child thread
   asm volatile("frstor (%0)" : : "g"(&tmp));    // restore fpu of parent thread
 
-  /* Disable interrupts so the new thread can't die when comparing the priorities of the two threads
-   */
-  bool should_yield = false;
-  enum intr_level old_level = intr_disable();
-
   /* Add to run queue. */
   thread_unblock(t);
 
-  /* Yield if the created thread's priority is higher than the current thread's */
-  if (thread_get_eprio(t) > thread_get_priority())
-    should_yield = true;
-
-  intr_set_level(old_level);
-
-  if (should_yield)
+  /* Yield if the created thread's priority could be higher than the current thread's */
+  if (active_sched_policy == SCHED_PRIO)
     thread_yield();
 
   return tid;

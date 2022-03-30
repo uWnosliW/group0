@@ -23,30 +23,26 @@ static struct semaphore temporary;
 static thread_func start_process NO_RETURN;
 static thread_func start_pthread NO_RETURN;
 static bool load(const char* file_name, void (**eip)(void), void** esp);
-bool setup_thread(void (**eip)(void), void** esp);
+bool setup_thread(void (**eip)(void), void** esp, stub_fun sf, pthread_fun tf, void* arg);
 
 /* is_valid_buffer - Returns whether the first size bytes of the buffer pointed to by ptr are in
  * user space and mapped. */
 bool is_valid_buffer(void* ptr, size_t size) {
   /* NULL is an invalid buffer */
-  if (ptr == NULL) {
+  if (ptr == NULL)
     return false;
-  }
 
   /* If the first byte of ptr does not lie in user space or the address pointed to is unmapped,
    * return false */
-  if (!is_user_vaddr(ptr) || pagedir_get_page(thread_current()->pcb->pagedir, ptr) == NULL) {
+  if (!is_user_vaddr(ptr) || pagedir_get_page(thread_current()->pcb->pagedir, ptr) == NULL)
     return false;
-  }
 
   /* If the last byte of ptr does not lie in user space or the address pointed to is unmapped,
    * return false */
   if (!is_user_vaddr((void*)((char*)ptr + size)) ||
-      pagedir_get_page(thread_current()->pcb->pagedir, (void*)((char*)ptr + size)) == NULL) {
+      pagedir_get_page(thread_current()->pcb->pagedir, (void*)((char*)ptr + size)) == NULL)
     return false;
-  }
 
-  /* If we got here the first size bytes were valid */
   return true;
 }
 
@@ -55,9 +51,8 @@ bool is_valid_buffer(void* ptr, size_t size) {
 bool is_valid_string(char* ptr) {
   /* Initial check to make sure ptr is not null, a valid user address, and mapped to a valid page */
   if (ptr == NULL || !is_user_vaddr(ptr) ||
-      pagedir_get_page(thread_current()->pcb->pagedir, ptr) == NULL) {
+      pagedir_get_page(thread_current()->pcb->pagedir, ptr) == NULL)
     return false;
-  }
 
   /* Repeat the checks from before byte by byte until a null byte is reached */
   char c = *ptr;
@@ -70,7 +65,6 @@ bool is_valid_string(char* ptr) {
     }
   }
 
-  /* If we get here all bytes were valid */
   return true;
 }
 
@@ -84,12 +78,8 @@ struct fd_table_entry* get_fd_table_entry(uint32_t fd) {
   struct list_elem* curr = list_begin(fd_table_ptr);
   while (curr != list_end(fd_table_ptr)) {
     curr_fd = list_entry(curr, struct fd_table_entry, elem);
-
-    /* If a match is found, break */
-    if (curr_fd->fd == fd) {
+    if (curr_fd->fd == fd)
       break;
-    }
-
     curr = list_next(curr);
   }
 
@@ -137,6 +127,7 @@ pid_t process_execute(const char* file_name) {
   /* Initialize the child's process_status, erroring if malloc fails */
   struct process_status* child_status = malloc(sizeof(struct process_status));
   if (child_status == NULL) {
+    free(child_status);
     return TID_ERROR;
   }
   list_push_back(&thread_current()->pcb->child_processes, &child_status->elem);
@@ -158,8 +149,9 @@ pid_t process_execute(const char* file_name) {
   /* Initialize the child arguments passed into start_process, erroring if malloc fails */
   struct start_thread_arg* child_args = malloc(sizeof(struct start_thread_arg));
   if (child_args == NULL) {
-    return TID_ERROR;
     free(child_status);
+    free(child_args);
+    return TID_ERROR;
   }
   child_args->file_name = fn_copy;
   child_args->status = child_status;
@@ -820,7 +812,7 @@ pid_t get_pid(struct process* p) { return (pid_t)p->main_thread->tid; }
    This function will be implemented in Project 2: Multithreading. For
    now, it does nothing. You may find it necessary to change the
    function signature. */
-bool setup_thread(void (**eip)(void), void** esp, stub_fun sf) {
+bool setup_thread(void (**eip)(void), void** esp, stub_fun sf, pthread_fun tf, void* arg) {
   uint8_t* kpage = palloc_get_page(PAL_USER | PAL_ZERO);
   if (kpage == NULL)
     return false;
@@ -847,8 +839,45 @@ bool setup_thread(void (**eip)(void), void** esp, stub_fun sf) {
    This function will be implemented in Project 2: Multithreading and
    should be similar to process_execute (). For now, it does nothing.
    */
-tid_t pthread_execute(stub_fun sf UNUSED, pthread_fun tf UNUSED, void* arg UNUSED) {
-  struct join_status* status = malloc(sizeof(struct join_status));
+tid_t pthread_execute(stub_fun sf, pthread_fun tf, void* arg) {
+  struct join_status* thread_status = malloc(sizeof(struct join_status));
+  if (thread_status == NULL) {
+    free(thread_status);
+    return TID_ERROR;
+  }
+
+  struct process* pcb = thread_current()->pcb;
+
+  list_push_back(&pcb->current_threads, &thread_status->elem);
+  sema_init(&thread_status, 0);
+  arc_init_with(thread_status, 2);
+
+  struct semaphore wait_sema;
+  sema_init(&wait_sema, 0);
+
+  struct start_pthread_arg* thread_arg = malloc(sizeof(struct start_pthread_arg));
+  if (thread_arg) {
+    free(thread_status);
+    free(thread_arg);
+    return TID_ERROR;
+  }
+
+  thread_arg->sf = sf;
+  thread_arg->tf = tf;
+  thread_arg->tf_arg = arg;
+  thread_arg->status = thread_status;
+
+  tid_t tid = thread_create("user", PRI_DEFAULT, start_pthread, thread_arg);
+  if (tid == TID_ERROR) {
+    free(thread_status);
+    free(thread_arg);
+    return TID_ERROR;
+  }
+
+  sema_down(&thread_status->init_finished);
+  free(thread_arg);
+
+  return tid;
 }
 
 /* A thread function that creates a new user thread and starts it
@@ -857,7 +886,38 @@ tid_t pthread_execute(stub_fun sf UNUSED, pthread_fun tf UNUSED, void* arg UNUSE
 
    This function will be implemented in Project 2: Multithreading and
    should be similar to start_process (). For now, it does nothing. */
-static void start_pthread(void* exec_) {}
+static void start_pthread(void* exec_) {
+  /* Unpacking args */
+  struct start_pthread_arg* thread_arg = (struct start_pthread_arg*)exec_;
+
+  stub_fun sf = thread_arg->sf;
+  pthread_fun tf = thread_arg->tf;
+  void* tf_arg = thread_arg->tf_arg;
+  struct join_status* thread_status = thread_arg->status;
+
+  struct thread* t = thread_current();
+  thread_status->tid = t->tid;
+
+  /* Initialize interrupt frame / setup user stack */
+  struct intr_frame if_;
+
+  memset(&if_, 0, sizeof if_);
+  if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
+  if_.cs = SEL_UCSEG;
+  if_.eflags = FLAG_IF | FLAG_MBS;
+
+  bool user_stack_success = setup_thread(if_.esp, if_.eip, sf, tf, tf_arg);
+  if (!user_stack_success) {
+    free(thread_status);
+    thread_exit();
+  }
+
+  /* Done initializing, simulate return from interrupt */
+  sema_up(&thread_status->init_finished);
+
+  asm volatile("movl %0, %%esp; jmp intr_exit" : : "g"(&if_) : "memory");
+  NOT_REACHED();
+}
 
 /* Waits for thread with TID to die, if that thread was spawned
    in the same process and has not been waited on yet. Returns TID on

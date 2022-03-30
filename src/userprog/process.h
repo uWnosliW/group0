@@ -59,7 +59,8 @@ struct process {
 struct join_status {
   struct list_elem elem;
   tid_t tid;
-  struct semaphore finished;
+  struct semaphore init_finished;
+  atomic_int_t arc;
 };
 
 struct start_pthread_arg {

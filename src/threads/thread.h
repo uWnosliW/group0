@@ -86,7 +86,8 @@ struct thread {
   tid_t tid;                 /* Thread identifier. */
   enum thread_status status; /* Thread state. */
   char name[16];             /* Name (for debugging purposes). */
-  uint8_t* stack;            /* Saved stack pointer. */
+  uint8_t* stack;            /* Saved kernel stack pointer. */
+  uint8_t* user_stack;       /* Saved user stack pointer */
 
   int priority;                /* Base priority. */
   struct lock* lock_requested; /* Lock requested, used in priority donation */
