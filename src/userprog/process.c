@@ -23,7 +23,7 @@ static struct semaphore temporary;
 static thread_func start_process NO_RETURN;
 static thread_func start_pthread NO_RETURN;
 static bool load(const char* file_name, void (**eip)(void), void** esp);
-bool setup_thread(void (**eip)(void), void** esp, stub_fun sf);
+bool setup_thread(void (**eip)(void), void** esp);
 
 /* is_valid_buffer - Returns whether the first size bytes of the buffer pointed to by ptr are in
  * user space and mapped. */
@@ -231,7 +231,7 @@ static void start_process(void* args_) {
     list_init(&t->pcb->join_statuses);
     list_init(&t->pcb->current_threads);
 
-    is_dying = false;
+    t->pcb->is_dying = false;
   }
 
   /* Initialize interrupt frame and load executable. */
@@ -857,7 +857,7 @@ tid_t pthread_execute(stub_fun sf UNUSED, pthread_fun tf UNUSED, void* arg UNUSE
 
    This function will be implemented in Project 2: Multithreading and
    should be similar to start_process (). For now, it does nothing. */
-static void start_pthread(void* exec_ UNUSED) {}
+static void start_pthread(void* exec_) {}
 
 /* Waits for thread with TID to die, if that thread was spawned
    in the same process and has not been waited on yet. Returns TID on
