@@ -381,7 +381,6 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
       //   f->eax = TID_ERROR;
       //   break;
       // }
-
       stub_fun sf = (stub_fun)args[1];
       pthread_fun tf = (pthread_fun)args[2];
       void* arg = (void*)args[3];
