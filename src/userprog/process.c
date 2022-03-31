@@ -230,6 +230,9 @@ static void start_process(void* args_) {
     list_init(&t->pcb->pthread_statuses);
     list_init(&t->pcb->current_threads);
 
+    /* Initialize exit cond var */
+    cond_init(&t->pcb->exit_cv);
+
     t->pcb->is_dying = false;
   }
 
@@ -394,6 +397,16 @@ void process_exit(void) {
     file_close(fdt_entry->file);
     free(fdt_entry);
   }
+
+  /* Exit user threads */
+  lock_acquire(&curr_thread->pcb->pcb_lock);
+  while (!list_empty(&curr_thread->pcb->current_threads)) {
+    struct list_elem* e = list_pop_back(&curr_thread->pcb->current_threads);
+    struct thread* thread = list_entry(e, struct thread, allelem);
+    pthread_join(thread->tid);
+    cond_wait(&curr_thread->pcb->exit_cv, &curr_thread->pcb->pcb_lock);
+  }
+  lock_release(&curr_thread->pcb->pcb_lock);
 
   /* Clean up synchronization primitives */
   int num_locks = curr_thread->pcb->num_locks;
@@ -857,7 +870,6 @@ bool setup_thread(void (**eip)(void), void** esp, stub_fun sf, pthread_fun tf, v
    This function will be implemented in Project 2: Multithreading and
    should be similar to process_execute (). For now, it does nothing.
    */
-<<<<<<< Updated upstream
 tid_t pthread_execute(stub_fun sf, pthread_fun tf, void* arg) {
   struct pthread_status* thread_status = malloc(sizeof(struct pthread_status));
   if (thread_status == NULL) {
@@ -1019,10 +1031,13 @@ void pthread_exit(void) {
 
   sema_up(&thread_status->finished);
 
+  lock_acquire(&pcb->pcb_lock);
+  cond_signal(&pcb->exit_cv, &pcb->pcb_lock);
+  lock_release(&pcb->pcb_lock);
+
   // TODO: user stack still not deallocated properly
   // palloc_free_page(t->user_stack);
   arc_drop_call_cl(thread_status, NULL);
-
   thread_exit();
 }
 
