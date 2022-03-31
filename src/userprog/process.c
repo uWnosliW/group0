@@ -1,12 +1,14 @@
 #include "userprog/process.h"
 #include "filesys/directory.h"
 #include "filesys/filesys.h"
+#include "list.h"
 #include "threads/flags.h"
 #include "threads/init.h"
 #include "threads/interrupt.h"
 #include "threads/malloc.h"
 #include "threads/palloc.h"
 #include "threads/synch.h"
+#include "threads/thread.h"
 #include "threads/vaddr.h"
 #include "userprog/gdt.h"
 #include "userprog/pagedir.h"
@@ -78,8 +80,12 @@ struct fd_table_entry* get_fd_table_entry(uint32_t fd) {
   struct list_elem* curr = list_begin(fd_table_ptr);
   while (curr != list_end(fd_table_ptr)) {
     curr_fd = list_entry(curr, struct fd_table_entry, elem);
-    if (curr_fd->fd == fd)
+
+    /* If a match is found, break */
+    if (curr_fd->fd == fd) {
       break;
+    }
+
     curr = list_next(curr);
   }
 
