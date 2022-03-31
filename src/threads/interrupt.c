@@ -5,6 +5,7 @@
 #include "threads/io.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
+#include "userprog/process.h"
 #include <debug.h>
 #include <inttypes.h>
 #include <stdint.h>
@@ -351,6 +352,11 @@ void intr_handler(struct intr_frame* frame) {
 
     in_external_intr = false;
     pic_end_of_interrupt(frame->vec_no);
+
+    //TODO: part of process_exit, not sure if correct
+    if (is_trap_from_userspace(frame) && thread_current()->pcb->is_dying) {
+      pthread_exit();
+    }
 
     if (yield_on_return)
       thread_yield();
