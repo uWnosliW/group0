@@ -50,6 +50,8 @@ struct process {
   struct list pthread_statuses;
   struct list current_threads;
   bool is_dying;
+
+  struct condition exit_cv; /* Synch pcb on exit (to clean threads) */
   // END USER THREADS //
 
   struct file* executable;
