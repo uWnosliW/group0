@@ -381,7 +381,6 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
       //   f->eax = TID_ERROR;
       //   break;
       // }
-
       stub_fun sf = (stub_fun)args[1];
       pthread_fun tf = (pthread_fun)args[2];
       void* arg = (void*)args[3];
@@ -391,6 +390,9 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
     }
 
     case SYS_PT_EXIT: {
+      if (thread_current() == thread_current()->pcb->main_thread) {
+        pthread_exit_main();
+      }
       pthread_exit();
       break;
     }

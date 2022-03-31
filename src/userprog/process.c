@@ -338,6 +338,15 @@ void process_exit(void) {
     NOT_REACHED();
   }
 
+  /* Exit user threads */
+  lock_acquire(&curr_thread->pcb->pcb_lock);
+  while (!list_empty(&curr_thread->pcb->current_threads)) {
+    struct list_elem* e = list_pop_back(&curr_thread->pcb->current_threads);
+    struct thread* thread = list_entry(e, struct thread, allelem);
+    cond_wait(&curr_thread->pcb->exit_cv, &curr_thread->pcb->pcb_lock);
+  }
+  lock_release(&curr_thread->pcb->pcb_lock);
+
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
   pd = curr_thread->pcb->pagedir;
@@ -397,16 +406,6 @@ void process_exit(void) {
     file_close(fdt_entry->file);
     free(fdt_entry);
   }
-
-  /* Exit user threads */
-  lock_acquire(&curr_thread->pcb->pcb_lock);
-  while (!list_empty(&curr_thread->pcb->current_threads)) {
-    struct list_elem* e = list_pop_back(&curr_thread->pcb->current_threads);
-    struct thread* thread = list_entry(e, struct thread, allelem);
-    pthread_join(thread->tid);
-    cond_wait(&curr_thread->pcb->exit_cv, &curr_thread->pcb->pcb_lock);
-  }
-  lock_release(&curr_thread->pcb->pcb_lock);
 
   /* Clean up synchronization primitives */
   int num_locks = curr_thread->pcb->num_locks;
@@ -838,9 +837,6 @@ bool setup_thread(void (**eip)(void), void** esp, stub_fun sf, pthread_fun tf, v
   if (kpage == NULL)
     return false;
 
-  // TODO: maybe fix?
-  thread_current()->user_stack = kpage;
-
   for (uint32_t page_addr = (uint32_t)PHYS_BASE - PGSIZE; page_addr >= 0; page_addr -= PGSIZE) {
     bool success = install_page((uint8_t*)page_addr, kpage, true);
     if (success) {
@@ -851,6 +847,8 @@ bool setup_thread(void (**eip)(void), void** esp, stub_fun sf, pthread_fun tf, v
       memcpy(*esp + 4, &tf, 4);
       memset(*esp, 0, 4);
 
+      // TODO: maybe fix?
+      thread_current()->user_stack = (uint8_t*)page_addr;
       return true;
     }
 
@@ -878,6 +876,7 @@ tid_t pthread_execute(stub_fun sf, pthread_fun tf, void* arg) {
   }
 
   struct process* pcb = thread_current()->pcb;
+  lock_acquire(&pcb->pcb_lock);
 
   /* Initialize thread_status */
   thread_status->joined = false;
@@ -890,6 +889,7 @@ tid_t pthread_execute(stub_fun sf, pthread_fun tf, void* arg) {
   if (thread_arg == NULL) {
     free(thread_status);
     free(thread_arg);
+    lock_release(&pcb->pcb_lock);
     return TID_ERROR;
   }
 
@@ -905,12 +905,14 @@ tid_t pthread_execute(stub_fun sf, pthread_fun tf, void* arg) {
   if (tid == TID_ERROR) {
     free(thread_status);
     free(thread_arg);
+    lock_release(&pcb->pcb_lock);
     return TID_ERROR;
   }
 
   sema_down(&thread_status->finished);
   free(thread_arg);
 
+  lock_release(&pcb->pcb_lock);
   return tid;
 }
 
@@ -968,11 +970,14 @@ static void start_pthread(void* exec_) {
    now, it does nothing. */
 tid_t pthread_join(tid_t tid) {
   // TODO: check that corresponding pcb lock is held before doing stuff
-
   struct thread* t = thread_current();
 
-  if (tid == t->tid)
+  lock_acquire(&t->pcb->pcb_lock);
+
+  if (tid == t->tid) {
+    lock_release(&t->pcb->pcb_lock);
     return TID_ERROR;
+  }
 
   struct process* pcb = t->pcb;
   struct pthread_status* thread_status;
@@ -983,21 +988,27 @@ tid_t pthread_join(tid_t tid) {
     thread_status = list_entry(e, struct pthread_status, elem);
     if (tid == thread_status->tid) {
       // TODO: hacky fix, maybe change
-      if (thread_status->joined)
+      if (thread_status->joined) {
+        lock_release(&t->pcb->pcb_lock);
         return TID_ERROR;
+      }
       thread_status->joined = true;
       break;
     }
   }
 
   // TODO: release pcb lock here?
-
-  if (e == list_end(&pcb->pthread_statuses))
+  lock_release(&t->pcb->pcb_lock);
+  if (e == list_end(&pcb->pthread_statuses)) {
     return TID_ERROR;
+  }
 
   sema_down(&thread_status->finished);
+  lock_acquire(&t->pcb->pcb_lock);
+
   arc_drop_call_cl(thread_status, NULL);
 
+  lock_release(&t->pcb->pcb_lock);
   return tid;
 }
 
@@ -1015,11 +1026,15 @@ void pthread_exit(void) {
   struct process* pcb = t->pcb;
   struct pthread_status* thread_status;
 
+  lock_acquire(&pcb->pcb_lock);
   struct list_elem* e;
   for (e = list_begin(&pcb->pthread_statuses); e != list_end(&pcb->pthread_statuses);
        e = list_next(e)) {
     thread_status = list_entry(e, struct pthread_status, elem);
     if (t->tid == thread_status->tid) {
+      /*TODO: create-many was fixed when i did this, but the spec says 
+      "It is valid to join on a thread that was part of the same process, but has 
+      already terminated – in such cases, the sys_pthread_join call should not block"*/
       list_remove(e);
       break;
     }
@@ -1031,13 +1046,13 @@ void pthread_exit(void) {
 
   sema_up(&thread_status->finished);
 
-  lock_acquire(&pcb->pcb_lock);
   cond_signal(&pcb->exit_cv, &pcb->pcb_lock);
-  lock_release(&pcb->pcb_lock);
 
   // TODO: user stack still not deallocated properly
-  // palloc_free_page(t->user_stack);
+  // pagedir_clear_page(pcb->pagedir, t->user_stack);
   arc_drop_call_cl(thread_status, NULL);
+
+  lock_release(&pcb->pcb_lock);
   thread_exit();
 }
 
@@ -1050,6 +1065,36 @@ void pthread_exit(void) {
    This function will be implemented in Project 2: Multithreading. For
    now, it does nothing. */
 void pthread_exit_main(void) {
-  // TODO: everything above comment asks
-  // process_exit();
+  struct thread* t = thread_current();
+  struct process* pcb = t->pcb;
+  struct pthread_status* thread_status;
+
+  lock_acquire(&t->pcb->pcb_lock);
+  // first wake up the thread that's waiting on main
+  struct list_elem* e;
+  for (e = list_begin(&pcb->pthread_statuses); e != list_end(&pcb->pthread_statuses);
+       e = list_next(e)) {
+    thread_status = list_entry(e, struct pthread_status, elem);
+    if (t->tid == thread_status->tid) {
+      break;
+    }
+  }
+  sema_up(&thread_status->finished);
+
+  // wait for all other threads to finish first
+  for (e = list_begin(&pcb->pthread_statuses); e != list_end(&pcb->pthread_statuses);
+       e = list_next(e)) {
+    thread_status = list_entry(e, struct pthread_status, elem);
+    if (t->tid != thread_status->tid && !thread_status->joined) {
+      cond_wait(&t->pcb->exit_cv, &t->pcb->pcb_lock);
+      //lock_release(&t->pcb->pcb_lock);
+      //pthread_join(thread_status->tid);
+      //lock_acquire(&t->pcb->pcb_lock);
+    }
+  }
+  lock_release(&t->pcb->pcb_lock);
+
+  // TODO, not sure if we need to account for other exit codes
+  printf("%s: exit(%d)\n", thread_current()->pcb->process_name, 0);
+  process_exit();
 }
