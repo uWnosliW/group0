@@ -220,7 +220,8 @@ static void start_process(void* args_) {
     t->pcb->num_semas = 0;
 
     /* Initialize user thread information */
-    list_init(&t->pcb->join_statuses);
+    t->final_exiter = true;
+    list_init(&t->pcb->pthread_statuses);
     list_init(&t->pcb->current_threads);
 
     t->pcb->is_dying = false;
@@ -814,21 +815,28 @@ pid_t get_pid(struct process* p) { return (pid_t)p->main_thread->tid; }
    function signature. */
 bool setup_thread(void (**eip)(void), void** esp, stub_fun sf, pthread_fun tf, void* arg) {
   uint8_t* kpage = palloc_get_page(PAL_USER | PAL_ZERO);
+
   if (kpage == NULL)
     return false;
 
-  for (uint32_t page_addr = (uint8_t*)PHYS_BASE - PGSIZE; page_addr >= 0; page_addr -= PGSIZE) {
-    bool success = install_page((void*)page_addr, kpage, true);
+  // TODO: maybe fix?
+  thread_current()->user_stack = kpage;
+
+  for (uint32_t page_addr = (uint32_t)PHYS_BASE - PGSIZE; page_addr >= 0; page_addr -= PGSIZE) {
+    bool success = install_page((uint8_t*)page_addr, kpage, true);
     if (success) {
       *eip = (void (*)(void))sf;
-      *esp = page_addr + PGSIZE - 8; // TODO: maybe set to 12
+      *esp = (void*)(page_addr + PGSIZE - 12); // TODO: maybe set to 12
 
       memcpy(*esp + 8, &arg, 4);
       memcpy(*esp + 4, &tf, 4);
-      // memset(*esp, 0, 4);
+      memset(*esp, 0, 4);
 
       return true;
     }
+
+    if (page_addr == 0)
+      break;
   }
   palloc_free_page(kpage);
   return false;
@@ -844,7 +852,7 @@ bool setup_thread(void (**eip)(void), void** esp, stub_fun sf, pthread_fun tf, v
    should be similar to process_execute (). For now, it does nothing.
    */
 tid_t pthread_execute(stub_fun sf, pthread_fun tf, void* arg) {
-  struct join_status* thread_status = malloc(sizeof(struct join_status));
+  struct pthread_status* thread_status = malloc(sizeof(struct pthread_status));
   if (thread_status == NULL) {
     free(thread_status);
     return TID_ERROR;
@@ -852,9 +860,12 @@ tid_t pthread_execute(stub_fun sf, pthread_fun tf, void* arg) {
 
   struct process* pcb = thread_current()->pcb;
 
-  list_push_back(&pcb->current_threads, &thread_status->elem);
-  sema_init(&thread_status->init_finished, 0);
+  /* Initialize thread_status */
+  thread_status->joined = false;
+  sema_init(&thread_status->finished, 0);
   arc_init_with(thread_status, 2);
+
+  list_push_back(&pcb->pthread_statuses, &thread_status->elem);
 
   struct start_pthread_arg* thread_arg = malloc(sizeof(struct start_pthread_arg));
   if (thread_arg == NULL) {
@@ -869,6 +880,8 @@ tid_t pthread_execute(stub_fun sf, pthread_fun tf, void* arg) {
   thread_arg->tf_arg = arg;
   thread_arg->status = thread_status;
 
+  // TODO: boolean for failing to start thread if pointers are invalid?
+
   tid_t tid = thread_create("user", PRI_DEFAULT, start_pthread, thread_arg);
   if (tid == TID_ERROR) {
     free(thread_status);
@@ -876,7 +889,7 @@ tid_t pthread_execute(stub_fun sf, pthread_fun tf, void* arg) {
     return TID_ERROR;
   }
 
-  sema_down(&thread_status->init_finished);
+  sema_down(&thread_status->finished);
   free(thread_arg);
 
   return tid;
@@ -896,12 +909,15 @@ static void start_pthread(void* exec_) {
   stub_fun sf = thread_arg->sf;
   pthread_fun tf = thread_arg->tf;
   void* tf_arg = thread_arg->tf_arg;
-  struct join_status* thread_status = thread_arg->status;
+  struct pthread_status* thread_status = thread_arg->status;
 
+  /* Set pcb in new thread to old thread's pcb, activate pagedir */
   struct thread* t = thread_current();
-  thread_status->tid = t->tid;
   t->pcb = pcb;
   process_activate();
+
+  /* Initialize pthread status tid */
+  thread_status->tid = t->tid;
 
   /* Initialize interrupt frame / setup user stack */
   struct intr_frame if_;
@@ -918,7 +934,7 @@ static void start_pthread(void* exec_) {
   }
 
   /* Done initializing, simulate return from interrupt */
-  sema_up(&thread_status->init_finished);
+  sema_up(&thread_status->finished);
 
   asm volatile("movl %0, %%esp; jmp intr_exit" : : "g"(&if_) : "memory");
   NOT_REACHED();
@@ -931,7 +947,40 @@ static void start_pthread(void* exec_) {
 
    This function will be implemented in Project 2: Multithreading. For
    now, it does nothing. */
-tid_t pthread_join(tid_t tid UNUSED) { return -1; }
+tid_t pthread_join(tid_t tid) {
+  // TODO: check that corresponding pcb lock is held before doing stuff
+
+  struct thread* t = thread_current();
+
+  if (tid == t->tid)
+    return TID_ERROR;
+
+  struct process* pcb = t->pcb;
+  struct pthread_status* thread_status;
+
+  struct list_elem* e;
+  for (e = list_begin(&pcb->pthread_statuses); e != list_end(&pcb->pthread_statuses);
+       e = list_next(e)) {
+    thread_status = list_entry(e, struct pthread_status, elem);
+    if (tid == thread_status->tid) {
+      // TODO: hacky fix, maybe change
+      if (thread_status->joined)
+        return TID_ERROR;
+      thread_status->joined = true;
+      break;
+    }
+  }
+
+  // TODO: release pcb lock here?
+
+  if (e == list_end(&pcb->pthread_statuses))
+    return TID_ERROR;
+
+  sema_down(&thread_status->finished);
+  arc_drop_call_cl(thread_status, NULL);
+
+  return tid;
+}
 
 /* Free the current thread's resources. Most resources will
    be freed on thread_exit(), so all we have to do is deallocate the
@@ -942,7 +991,33 @@ tid_t pthread_join(tid_t tid UNUSED) { return -1; }
 
    This function will be implemented in Project 2: Multithreading. For
    now, it does nothing. */
-void pthread_exit(void) {}
+void pthread_exit(void) {
+  struct thread* t = thread_current();
+  struct process* pcb = t->pcb;
+  struct pthread_status* thread_status;
+
+  struct list_elem* e;
+  for (e = list_begin(&pcb->pthread_statuses); e != list_end(&pcb->pthread_statuses);
+       e = list_next(e)) {
+    thread_status = list_entry(e, struct pthread_status, elem);
+    if (t->tid == thread_status->tid) {
+      list_remove(e);
+      break;
+    }
+  }
+
+  // TODO: fix join
+  // if (thread_status->joiner != NULL)
+  //   pthread_join(thread_status->joiner->tid);
+
+  sema_up(&thread_status->finished);
+
+  // TODO: user stack still not deallocated properly
+  // palloc_free_page(t->user_stack);
+  arc_drop_call_cl(thread_status, NULL);
+
+  thread_exit();
+}
 
 /* Only to be used when the main thread explicitly calls pthread_exit.
    The main thread should wait on all threads in the process to
@@ -952,4 +1027,7 @@ void pthread_exit(void) {}
 
    This function will be implemented in Project 2: Multithreading. For
    now, it does nothing. */
-void pthread_exit_main(void) {}
+void pthread_exit_main(void) {
+  // TODO: everything above comment asks
+  // process_exit();
+}

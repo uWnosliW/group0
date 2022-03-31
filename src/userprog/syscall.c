@@ -40,8 +40,9 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
     print_and_exit(f, -1);
 
   /* Grab pcb lock */
-  struct lock* pcb_lock_ptr = &thread_current()->pcb->pcb_lock;
-  lock_acquire(pcb_lock_ptr);
+  // TODO: fix synch issues
+  // struct lock* pcb_lock_ptr = &thread_current()->pcb->pcb_lock;
+  // lock_acquire(pcb_lock_ptr);
 
   switch (args[0]) {
     case SYS_HALT: {
@@ -381,20 +382,22 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
       //   break;
       // }
 
-      stub_fun sf = args[1];
-      pthread_fun tf = args[2];
-      void* arg = args[3];
+      stub_fun sf = (stub_fun)args[1];
+      pthread_fun tf = (pthread_fun)args[2];
+      void* arg = (void*)args[3];
 
       f->eax = pthread_execute(sf, tf, arg);
       break;
     }
 
     case SYS_PT_EXIT: {
-      PANIC("Syscall is not implemented");
+      pthread_exit();
+      break;
     }
 
     case SYS_PT_JOIN: {
-      PANIC("Syscall is not implemented");
+      pthread_join((tid_t)args[1]);
+      break;
     }
 
     case SYS_LOCK_INIT: {
@@ -482,7 +485,7 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
     }
 
     case SYS_SEMA_DOWN: {
-      int sema_num = *((int*)args[1]);
+      int sema_num = *((char*)args[1]);
       struct process* pcb = thread_current()->pcb;
 
       if (pcb->semaphores[sema_num] == NULL) {
@@ -496,7 +499,7 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
     }
 
     case SYS_SEMA_UP: {
-      int sema_num = *((int*)args[1]);
+      int sema_num = *((char*)args[1]);
       struct process* pcb = thread_current()->pcb;
 
       if (pcb->semaphores[sema_num] == NULL) {
@@ -511,10 +514,11 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
 
     case SYS_GET_TID: {
       f->eax = thread_current()->tid;
+      break;
     }
 
     default: { PANIC("Syscall is not implemented"); }
   }
 
-  lock_release(pcb_lock_ptr);
+  // lock_release(pcb_lock_ptr);
 }

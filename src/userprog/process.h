@@ -47,7 +47,7 @@ struct process {
   struct semaphore* semaphores[128]; /* List of pointers to user semaphores */
 
   // BEGIN USER THREADS //
-  struct list join_statuses;
+  struct list pthread_statuses;
   struct list current_threads;
   bool is_dying;
   // END USER THREADS //
@@ -56,10 +56,11 @@ struct process {
 };
 
 // BEGIN USER THREADS //
-struct join_status {
+struct pthread_status {
   struct list_elem elem;
   tid_t tid;
-  struct semaphore init_finished;
+  bool joined;
+  struct semaphore finished; /* Used once when setting up the thread, again while joining */
   atomic_int_t arc;
 };
 
@@ -68,7 +69,7 @@ struct start_pthread_arg {
   stub_fun sf;
   pthread_fun tf;
   void* tf_arg;
-  struct join_status* status;
+  struct pthread_status* status;
 };
 // END USER THREADS //
 
