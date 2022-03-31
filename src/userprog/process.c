@@ -230,6 +230,23 @@ static void start_process(void* args_) {
     list_init(&t->pcb->pthread_statuses);
     list_init(&t->pcb->current_threads);
 
+    //TODO: this might not be necessary
+    struct pthread_status* thread_status = malloc(sizeof(struct pthread_status));
+    if (thread_status == NULL) {
+      free(thread_status);
+      return TID_ERROR;
+    }
+
+    struct process* pcb = t->pcb;
+
+    /* Initialize thread_status */
+    thread_status->tid = t->tid;
+    thread_status->joined = false;
+    sema_init(&thread_status->finished, 0);
+    arc_init_with(thread_status, 2);
+
+    list_push_back(&pcb->pthread_statuses, &thread_status->elem);
+
     /* Initialize exit cond var */
     cond_init(&t->pcb->exit_cv);
 
@@ -339,6 +356,7 @@ void process_exit(void) {
   }
 
   /* Exit user threads */
+  curr_thread->pcb->is_dying = true;
   lock_acquire(&curr_thread->pcb->pcb_lock);
   while (!list_empty(&curr_thread->pcb->current_threads)) {
     struct list_elem* e = list_pop_back(&curr_thread->pcb->current_threads);
