@@ -857,6 +857,7 @@ bool setup_thread(void (**eip)(void), void** esp, stub_fun sf, pthread_fun tf, v
    This function will be implemented in Project 2: Multithreading and
    should be similar to process_execute (). For now, it does nothing.
    */
+<<<<<<< Updated upstream
 tid_t pthread_execute(stub_fun sf, pthread_fun tf, void* arg) {
   struct pthread_status* thread_status = malloc(sizeof(struct pthread_status));
   if (thread_status == NULL) {
