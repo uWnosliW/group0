@@ -855,6 +855,7 @@ bool setup_thread(void (**eip)(void), void** esp, stub_fun sf, pthread_fun tf, v
   if (kpage == NULL)
     return false;
 
+  thread_current()->kpage_ptr = kpage;
   for (uint32_t page_addr = (uint32_t)PHYS_BASE - PGSIZE; page_addr >= 0; page_addr -= PGSIZE) {
     bool success = install_page((uint8_t*)page_addr, kpage, true);
     if (success) {
@@ -866,7 +867,7 @@ bool setup_thread(void (**eip)(void), void** esp, stub_fun sf, pthread_fun tf, v
       memset(*esp, 0, 4);
 
       // TODO: maybe fix?
-      thread_current()->user_stack = (uint8_t*)page_addr;
+      thread_current()->user_stack = (uint32_t*)page_addr;
       return true;
     }
 
@@ -1067,7 +1068,8 @@ void pthread_exit(void) {
   cond_signal(&pcb->exit_cv, &pcb->pcb_lock);
 
   // TODO: user stack still not deallocated properly
-  // pagedir_clear_page(pcb->pagedir, t->user_stack);
+  pagedir_clear_page(pcb->pagedir, t->user_stack);
+  palloc_free_page(t->kpage_ptr);
   arc_drop_call_cl(thread_status, NULL);
 
   lock_release(&pcb->pcb_lock);

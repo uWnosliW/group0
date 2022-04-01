@@ -41,7 +41,7 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
 
   /* Grab pcb lock */
   // TODO: fix synch issues
-  // struct lock* pcb_lock_ptr = &thread_current()->pcb->pcb_lock;
+  struct lock* pcb_lock_ptr = &thread_current()->pcb->pcb_lock;
   // lock_acquire(pcb_lock_ptr);
 
   switch (args[0]) {
@@ -96,6 +96,7 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
       /* Verify that the string passed in is valid, exit(-1) if not */
       if (!is_valid_string((char*)args[1])) {
         lock_release(&global_file_lock); /* Release lock */
+        lock_release(pcb_lock_ptr);
         print_and_exit(f, -1);
       }
 
@@ -112,6 +113,7 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
       /* Verify that the string passed in is valid, exit(-1) if not */
       if (!is_valid_string((char*)args[1])) {
         lock_release(&global_file_lock); /* Release lock */
+        lock_release(pcb_lock_ptr);
         print_and_exit(f, -1);
       }
 
@@ -137,6 +139,8 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
       if (file_ptr == NULL) {
         f->eax = -1; /* Set return code to -1 if unsuccessful */
       } else {
+        lock_acquire(pcb_lock_ptr);
+
         /* Iterate through the file descriptor table to find the first open file descriptor id */
         struct list* fd_table_ptr = &thread_current()->pcb->fd_table;
         struct fd_table_entry* curr_fd;
@@ -163,6 +167,8 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
 
         list_insert(curr, &new_fd->elem);
 
+        lock_release(pcb_lock_ptr);
+
         /* Return the file descriptor id of the new file descriptor */
         f->eax = fd_num;
       }
@@ -175,7 +181,9 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
       lock_acquire(&global_file_lock); /* Acquire lock */
 
       /* Try getting the file descriptor with id args[1] */
+      lock_acquire(pcb_lock_ptr);
       struct fd_table_entry* fdt_entry = get_fd_table_entry(args[1]);
+      lock_release(pcb_lock_ptr);
 
       /* If not found, return -1, else return the result of file_length on the file descriptor's
        * file */
@@ -218,7 +226,9 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
       }
 
       /* Try getting the file descriptor with id args[1] */
+      lock_acquire(pcb_lock_ptr);
       struct fd_table_entry* fdt_entry = get_fd_table_entry(args[1]);
+      lock_release(pcb_lock_ptr);
 
       /* If not found, return -1, else return the result of file_read on the file descriptor's file
        */
@@ -265,7 +275,9 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
         break;
       }
 
+      lock_acquire(pcb_lock_ptr);
       struct fd_table_entry* fdt_entry = get_fd_table_entry(args[1]);
+      lock_release(pcb_lock_ptr);
 
       if (fdt_entry == NULL) {
         f->eax = -1; /* If file descriptor not found, return -1 */
@@ -312,7 +324,9 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
       lock_acquire(&global_file_lock); /* Acquire lock */
 
       /* Try getting the file descriptor with id args[1] */
+      lock_acquire(pcb_lock_ptr);
       struct fd_table_entry* fdt_entry = get_fd_table_entry(args[1]);
+      lock_release(pcb_lock_ptr);
 
       /* If found, change file descriptor's file's position to args[2] */
       if (fdt_entry != NULL) {
@@ -398,15 +412,17 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
     }
 
     case SYS_PT_JOIN: {
-      pthread_join((tid_t)args[1]);
+      f->eax = pthread_join((tid_t)args[1]);
       break;
     }
 
     case SYS_LOCK_INIT: {
       struct process* pcb = thread_current()->pcb;
+      lock_acquire(pcb_lock_ptr);
 
       /* Too many locks or lock pointer was NULL */
       if (pcb->num_locks == 128 || args[1] == 0) {
+        lock_release(pcb_lock_ptr);
         f->eax = false;
         break;
       }
@@ -415,10 +431,17 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
       *new_lock = pcb->num_locks;
 
       pcb->locks[pcb->num_locks] = malloc(sizeof(struct lock));
-      ASSERT(pcb->locks[pcb->num_locks] != NULL); // TODO: debug, remove when done
-      lock_init(pcb->locks[pcb->num_locks]);
 
+      if (pcb->locks[pcb->num_locks] == NULL) {
+        lock_release(pcb_lock_ptr);
+        f->eax = false;
+        break;
+      }
+
+      lock_init(pcb->locks[pcb->num_locks]);
       pcb->num_locks++;
+
+      lock_release(pcb_lock_ptr);
       f->eax = true;
       break;
     }
@@ -426,18 +449,22 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
     case SYS_LOCK_ACQUIRE: {
       int lock_num = *((char*)args[1]);
       struct process* pcb = thread_current()->pcb;
+      lock_acquire(pcb_lock_ptr);
 
       /* No acquiring locks that haven't been initialized */
       if (pcb->locks[lock_num] == NULL) {
+        lock_release(pcb_lock_ptr);
         f->eax = false;
         break;
       }
 
       /* No double acquires */
       if (pcb->locks[lock_num]->holder == thread_current()) {
+        lock_release(pcb_lock_ptr);
         f->eax = false;
         break;
       }
+      lock_release(pcb_lock_ptr);
 
       lock_acquire(pcb->locks[lock_num]);
       f->eax = true;
@@ -447,18 +474,22 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
     case SYS_LOCK_RELEASE: {
       int lock_num = *((char*)args[1]);
       struct process* pcb = thread_current()->pcb;
+      lock_acquire(pcb_lock_ptr);
 
       /* No releasing locks that haven't been initialized */
       if (pcb->locks[lock_num] == NULL) {
+        lock_release(pcb_lock_ptr);
         f->eax = false;
         break;
       }
 
       /* No releasing locks not owned by this thread */
       if (pcb->locks[lock_num]->holder != thread_current()) {
+        lock_release(pcb_lock_ptr);
         f->eax = false;
         break;
       }
+      lock_release(pcb_lock_ptr);
 
       lock_release(pcb->locks[lock_num]);
       f->eax = true;
@@ -468,8 +499,10 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
     case SYS_SEMA_INIT: {
       struct process* pcb = thread_current()->pcb;
 
+      lock_acquire(pcb_lock_ptr);
       /* Too many semas or trying to initialize NULL sema or value was negative */
       if (pcb->num_semas == 128 || args[1] == 0 || (int)args[2] < 0) {
+        lock_release(pcb_lock_ptr);
         f->eax = false;
         break;
       }
@@ -478,10 +511,17 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
       *new_sema = pcb->num_semas;
 
       pcb->semaphores[pcb->num_semas] = malloc(sizeof(struct semaphore));
-      ASSERT(pcb->semaphores[pcb->num_semas] != NULL); // TODO: debug, remove when done
-      sema_init(pcb->semaphores[pcb->num_semas], args[2]);
 
+      if (pcb->semaphores[pcb->num_semas] == NULL) {
+        lock_release(pcb_lock_ptr);
+        f->eax = false;
+        break;
+      }
+
+      sema_init(pcb->semaphores[pcb->num_semas], args[2]);
       pcb->num_semas++;
+
+      lock_release(pcb_lock_ptr);
       f->eax = true;
       break;
     }
@@ -490,10 +530,13 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
       int sema_num = *((char*)args[1]);
       struct process* pcb = thread_current()->pcb;
 
+      lock_acquire(pcb_lock_ptr);
       if (pcb->semaphores[sema_num] == NULL) {
+        lock_release(pcb_lock_ptr);
         f->eax = false;
         break;
       }
+      lock_release(pcb_lock_ptr);
 
       sema_down(pcb->semaphores[sema_num]);
       f->eax = true;
@@ -504,10 +547,13 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
       int sema_num = *((char*)args[1]);
       struct process* pcb = thread_current()->pcb;
 
+      lock_acquire(pcb_lock_ptr);
       if (pcb->semaphores[sema_num] == NULL) {
+        lock_release(pcb_lock_ptr);
         f->eax = false;
         break;
       }
+      lock_release(pcb_lock_ptr);
 
       sema_up(pcb->semaphores[sema_num]);
       f->eax = true;
