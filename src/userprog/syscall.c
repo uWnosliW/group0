@@ -92,6 +92,7 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
 
     case SYS_CREATE: {
       lock_acquire(&global_file_lock); /* Acquire lock */
+      lock_acquire(pcb_lock_ptr);
 
       /* Verify that the string passed in is valid, exit(-1) if not */
       if (!is_valid_string((char*)args[1])) {
@@ -104,11 +105,13 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
       f->eax = filesys_create((char*)args[1], args[2]);
 
       lock_release(&global_file_lock); /* Release lock */
+      lock_release(pcb_lock_ptr);
       break;
     }
 
     case SYS_REMOVE: {
       lock_acquire(&global_file_lock); /* Acquire lock */
+      lock_acquire(pcb_lock_ptr);
 
       /* Verify that the string passed in is valid, exit(-1) if not */
       if (!is_valid_string((char*)args[1])) {
@@ -121,6 +124,7 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
       f->eax = filesys_remove((char*)args[1]);
 
       lock_release(&global_file_lock); /* Release lock */
+      lock_release(pcb_lock_ptr);
       break;
     }
 

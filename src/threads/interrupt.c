@@ -354,7 +354,8 @@ void intr_handler(struct intr_frame* frame) {
     pic_end_of_interrupt(frame->vec_no);
 
     //TODO: part of process_exit, not sure if correct
-    if (is_trap_from_userspace(frame) && thread_current()->pcb->is_dying) {
+    if (is_trap_from_userspace(frame) && thread_current()->pcb->is_dying &&
+        thread_current() != thread_current()->pcb->main_thread) {
       pthread_exit();
     }
 

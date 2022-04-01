@@ -87,8 +87,8 @@ struct thread {
   enum thread_status status; /* Thread state. */
   char name[16];             /* Name (for debugging purposes). */
   uint8_t* stack;            /* Saved stack pointer. */
-  uint32_t* user_stack;      // pointer to the user stack
-  uint32_t* kpage_ptr;       // the physical page the user_stack is mapped to
+  uint8_t* user_stack;       // pointer to the user stack
+  uint8_t* kpage_ptr;        // the physical page the user_stack is mapped to
 
   int priority;                /* Base priority. */
   struct lock* lock_requested; /* Lock requested, used in priority donation */
