@@ -849,7 +849,7 @@ bool setup_thread(void (**eip)(void), void** esp, stub_fun sf, pthread_fun tf, v
       memset(*esp, 0, 4);
 
       // TODO: maybe fix?
-      thread_current()->user_stack = (uint8_t*)page_addr;
+      thread_current()->user_stack = (uint32_t*)page_addr;
       return true;
     }
 
