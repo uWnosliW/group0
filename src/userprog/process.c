@@ -1054,7 +1054,7 @@ void pthread_exit(void) {
       /*TODO: create-many was fixed when i did this, but the spec says 
       "It is valid to join on a thread that was part of the same process, but has 
       already terminated – in such cases, the sys_pthread_join call should not block"*/
-      list_remove(e);
+      //list_remove(e);
       break;
     }
   }
@@ -1068,8 +1068,8 @@ void pthread_exit(void) {
   cond_signal(&pcb->exit_cv, &pcb->pcb_lock);
 
   // TODO: user stack still not deallocated properly
-  pagedir_clear_page(pcb->pagedir, t->user_stack);
-  palloc_free_page(t->kpage_ptr);
+  //pagedir_clear_page(pcb->pagedir, t->user_stack);
+  //palloc_free_page(t->kpage_ptr);
   arc_drop_call_cl(thread_status, NULL);
 
   lock_release(&pcb->pcb_lock);
