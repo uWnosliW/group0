@@ -360,7 +360,7 @@ void process_exit(void) {
   while (!list_empty(&curr_thread->pcb->pthread_statuses)) {
     struct list_elem* e = list_pop_back(&curr_thread->pcb->pthread_statuses);
     struct pthread_status* thread = list_entry(e, struct pthread_status, elem);
-    if (!thread->is_dead) {
+    if (thread->tid != curr_thread->tid && !thread->is_dead) {
       cond_wait(&curr_thread->pcb->exit_cv, &curr_thread->pcb->pcb_lock);
     }
   }
@@ -929,7 +929,9 @@ tid_t pthread_execute(stub_fun sf, pthread_fun tf, void* arg) {
 
   // TODO: boolean for failing to start thread if pointers are invalid?
 
+  lock_release(&pcb->pcb_lock);
   tid_t tid = thread_create("user", PRI_DEFAULT, start_pthread, thread_arg);
+  lock_acquire(&pcb->pcb_lock);
   if (tid == TID_ERROR) {
     free(thread_status);
     free(thread_arg);
@@ -1033,11 +1035,11 @@ tid_t pthread_join(tid_t tid) {
   lock_release(&t->pcb->pcb_lock);
   sema_down(&thread_status->finished);
 
-  lock_acquire(&t->pcb->pcb_lock);
+  //lock_acquire(&t->pcb->pcb_lock);
 
   //arc_drop_call_cl(thread_status, NULL);
 
-  lock_release(&t->pcb->pcb_lock);
+  //lock_release(&t->pcb->pcb_lock);
   return tid;
 }
 
@@ -1061,10 +1063,6 @@ void pthread_exit(void) {
        e = list_next(e)) {
     thread_status = list_entry(e, struct pthread_status, elem);
     if (t->tid == thread_status->tid) {
-      /*TODO: create-many was fixed when i did this, but the spec says 
-      "It is valid to join on a thread that was part of the same process, but has 
-      already terminated – in such cases, the sys_pthread_join call should not block"*/
-      //list_remove(e);
       break;
     }
   }
