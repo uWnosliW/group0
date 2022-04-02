@@ -153,19 +153,14 @@ pid_t process_execute(const char* file_name) {
   strlcpy(fn_copy, file_name, PGSIZE);
 
   /* Initialize the child arguments passed into start_process, erroring if malloc fails */
-  struct start_thread_arg* child_args = malloc(sizeof(struct start_thread_arg));
-  if (child_args == NULL) {
-    free(child_status);
-    free(child_args);
-    return TID_ERROR;
-  }
-  child_args->file_name = fn_copy;
-  child_args->status = child_status;
+  struct start_thread_arg child_args;
+  child_args.file_name = fn_copy;
+  child_args.status = child_status;
 
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create(file_name, PRI_DEFAULT, start_process, child_args);
+  tid = thread_create(file_name, PRI_DEFAULT, start_process, &child_args);
   sema_down(&child_status->is_dead);
-  free(child_args);
+  //free(child_args);
 
   /* If child fails to load, free shared data. Everything else
      is freed in start_process when it fails to load */
@@ -1079,8 +1074,8 @@ void pthread_exit(void) {
   cond_signal(&pcb->exit_cv, &pcb->pcb_lock);
 
   // TODO: user stack still not deallocated properly
-  //pagedir_clear_page(pcb->pagedir, t->user_stack);
-  //palloc_free_page(t->kpage_ptr);
+  pagedir_clear_page(pcb->pagedir, t->user_stack);
+  palloc_free_page(t->kpage_ptr);
   //arc_drop_call_cl(thread_status, NULL);
 
   lock_release(&pcb->pcb_lock);
