@@ -239,6 +239,7 @@ static void start_process(void* args_) {
     /* Initialize thread_status */
     thread_status->tid = t->tid;
     thread_status->joined = false;
+    thread_status->is_dead = false;
     sema_init(&thread_status->finished, 0);
     arc_init_with(thread_status, 2);
     lock_acquire(&pcb->pcb_lock);
@@ -356,10 +357,12 @@ void process_exit(void) {
   /* Exit user threads */
   curr_thread->pcb->is_dying = true;
   lock_acquire(&curr_thread->pcb->pcb_lock);
-  while (!list_empty(&curr_thread->pcb->current_threads)) {
-    struct list_elem* e = list_pop_back(&curr_thread->pcb->current_threads);
-    struct thread* thread = list_entry(e, struct thread, allelem);
-    cond_wait(&curr_thread->pcb->exit_cv, &curr_thread->pcb->pcb_lock);
+  while (!list_empty(&curr_thread->pcb->pthread_statuses)) {
+    struct list_elem* e = list_pop_back(&curr_thread->pcb->pthread_statuses);
+    struct pthread_status* thread = list_entry(e, struct pthread_status, elem);
+    if (!thread->is_dead) {
+      cond_wait(&curr_thread->pcb->exit_cv, &curr_thread->pcb->pcb_lock);
+    }
   }
   lock_release(&curr_thread->pcb->pcb_lock);
 
@@ -904,6 +907,7 @@ tid_t pthread_execute(stub_fun sf, pthread_fun tf, void* arg) {
 
   /* Initialize thread_status */
   thread_status->joined = false;
+  thread_status->is_dead = false;
   sema_init(&thread_status->finished, 0);
   arc_init_with(thread_status, 2);
 
@@ -1068,7 +1072,7 @@ void pthread_exit(void) {
   // TODO: fix join
   // if (thread_status->joiner != NULL)
   //   pthread_join(thread_status->joiner->tid);
-
+  thread_status->is_dead = true;
   sema_up(&thread_status->finished);
 
   cond_signal(&pcb->exit_cv, &pcb->pcb_lock);

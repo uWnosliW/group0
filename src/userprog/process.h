@@ -65,6 +65,7 @@ struct pthread_status {
   tid_t tid;
   bool joined;
   struct semaphore finished; /* Used once when setting up the thread, again while joining */
+  bool is_dead;
   atomic_int_t arc;
 };
 

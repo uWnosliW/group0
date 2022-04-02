@@ -10,8 +10,8 @@
 #include <syscall.h>
 #include <pthread.h>
 
-#define NUM_THREADS 100
-#define NUM_ACCESS 100
+#define NUM_THREADS 10
+#define NUM_ACCESS 0
 
 // Global variables
 char* sample_file = "sample.txt";
