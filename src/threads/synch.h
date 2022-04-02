@@ -108,6 +108,7 @@ void atomic_int_call_cl(atomic_int_t* ai, closure_t* cl);
 #define arc_incr(ARC_OBJ) (atomic_int_incr(arc_extract_atomic_int(ARC_OBJ)))
 #define arc_decr(ARC_OBJ) (atomic_int_decr(arc_extract_atomic_int(ARC_OBJ)))
 
+// decrease ref count, free if 0
 #define arc_drop_call_cl(ARC_OBJ, ON_DROP_CL)                                                      \
   {                                                                                                \
     atomic_int_t* ai = arc_extract_atomic_int(ARC_OBJ);                                            \

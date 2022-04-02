@@ -244,8 +244,9 @@ static void start_process(void* args_) {
     thread_status->joined = false;
     sema_init(&thread_status->finished, 0);
     arc_init_with(thread_status, 2);
-
+    lock_acquire(&pcb->pcb_lock);
     list_push_back(&pcb->pthread_statuses, &thread_status->elem);
+    lock_release(&pcb->pcb_lock);
 
     /* Initialize exit cond var */
     cond_init(&t->pcb->exit_cv);
@@ -434,6 +435,11 @@ void process_exit(void) {
     if (lck_ptr->holder != NULL)
       list_remove(&lck_ptr->elem);
     free(lck_ptr);
+  }
+
+  // free pthread statuses
+  while (!list_empty(&curr_thread->pcb->pthread_statuses)) {
+    list_remove(list_begin(&curr_thread->pcb->pthread_statuses));
   }
 
   for (int i = 0; i < num_semas; i++)
@@ -1017,15 +1023,16 @@ tid_t pthread_join(tid_t tid) {
   }
 
   // TODO: release pcb lock here?
-  lock_release(&t->pcb->pcb_lock);
   if (e == list_end(&pcb->pthread_statuses)) {
+    lock_release(&t->pcb->pcb_lock);
     return TID_ERROR;
   }
-
+  lock_release(&t->pcb->pcb_lock);
   sema_down(&thread_status->finished);
+
   lock_acquire(&t->pcb->pcb_lock);
 
-  arc_drop_call_cl(thread_status, NULL);
+  //arc_drop_call_cl(thread_status, NULL);
 
   lock_release(&t->pcb->pcb_lock);
   return tid;
@@ -1070,7 +1077,7 @@ void pthread_exit(void) {
   // TODO: user stack still not deallocated properly
   //pagedir_clear_page(pcb->pagedir, t->user_stack);
   //palloc_free_page(t->kpage_ptr);
-  arc_drop_call_cl(thread_status, NULL);
+  //arc_drop_call_cl(thread_status, NULL);
 
   lock_release(&pcb->pcb_lock);
   thread_exit();
