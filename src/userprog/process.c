@@ -136,7 +136,7 @@ pid_t process_execute(const char* file_name) {
     free(child_status);
     return TID_ERROR;
   }
-  list_push_back(&thread_current()->pcb->child_processes, &child_status->elem);
+  list_push_front(&thread_current()->pcb->child_processes, &child_status->elem);
   child_status->exit_code = 0;
   sema_init(&child_status->is_dead, 0);
   child_status->success = false;
@@ -225,6 +225,8 @@ static void start_process(void* args_) {
     t->pcb->num_locks = 0;
     t->pcb->num_semas = 0;
 
+    t->pcb->last_installed_page = PHYS_BASE;
+
     /* Initialize user thread information */
     t->final_exiter = true;
     list_init(&t->pcb->pthread_statuses);
@@ -245,7 +247,7 @@ static void start_process(void* args_) {
     sema_init(&thread_status->finished, 0);
     arc_init_with(thread_status, 2);
     lock_acquire(&pcb->pcb_lock);
-    list_push_back(&pcb->pthread_statuses, &thread_status->elem);
+    list_push_front(&pcb->pthread_statuses, &thread_status->elem);
     lock_release(&pcb->pcb_lock);
 
     /* Initialize exit cond var */
@@ -811,7 +813,7 @@ static bool setup_stack(void** esp) {
   uint8_t* kpage;
   bool success = false;
 
-  kpage = palloc_get_page(PAL_USER | PAL_ZERO);
+  kpage = palloc_get_page(PAL_USER);
   if (kpage != NULL) {
     success = install_page(((uint8_t*)PHYS_BASE) - PGSIZE, kpage, true);
     if (success)
@@ -856,13 +858,14 @@ pid_t get_pid(struct process* p) { return (pid_t)p->main_thread->tid; }
    now, it does nothing. You may find it necessary to change the
    function signature. */
 bool setup_thread(void (**eip)(void), void** esp, stub_fun sf, pthread_fun tf, void* arg) {
-  uint8_t* kpage = palloc_get_page(PAL_USER | PAL_ZERO);
+  uint8_t* kpage = palloc_get_page(PAL_USER);
 
   if (kpage == NULL)
     return false;
 
   thread_current()->kpage_ptr = kpage;
-  for (uint32_t page_addr = (uint32_t)PHYS_BASE - PGSIZE; page_addr >= 0; page_addr -= PGSIZE) {
+  uint32_t* last_page = &thread_current()->pcb->last_installed_page;
+  for (uint32_t page_addr = (uint32_t)*last_page - PGSIZE; page_addr >= 0; page_addr -= PGSIZE) {
     bool success = install_page((uint8_t*)page_addr, kpage, true);
     if (success) {
       *eip = (void (*)(void))sf;
@@ -874,6 +877,7 @@ bool setup_thread(void (**eip)(void), void** esp, stub_fun sf, pthread_fun tf, v
 
       // TODO: maybe fix?
       thread_current()->user_stack = (uint8_t*)page_addr;
+      *last_page = page_addr;
       return true;
     }
 
@@ -908,7 +912,7 @@ tid_t pthread_execute(stub_fun sf, pthread_fun tf, void* arg) {
   sema_init(&thread_status->finished, 0);
   arc_init_with(thread_status, 2);
 
-  list_push_back(&pcb->pthread_statuses, &thread_status->elem);
+  list_push_front(&pcb->pthread_statuses, &thread_status->elem);
 
   struct start_pthread_arg* thread_arg = malloc(sizeof(struct start_pthread_arg));
   if (thread_arg == NULL) {

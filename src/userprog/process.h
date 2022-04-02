@@ -51,6 +51,8 @@ struct process {
   struct list current_threads;
   bool is_dying;
 
+  uint32_t last_installed_page;
+
   struct condition exit_cv; /* Synch pcb on exit (to clean threads) */
   // END USER THREADS //
 

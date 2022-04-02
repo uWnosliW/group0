@@ -183,7 +183,7 @@ tid_t thread_create(const char* name, int priority, thread_func* function, void*
   ASSERT(function != NULL);
   // TODO: initialize all the new fields
   /* Allocate thread. */
-  t = palloc_get_page(PAL_ZERO);
+  t = palloc_get_page(PAL_ASSERT);
   if (t == NULL)
     return TID_ERROR;
 
