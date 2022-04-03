@@ -410,6 +410,7 @@ static void syscall_handler(struct intr_frame* f UNUSED) {
     case SYS_PT_EXIT: {
       if (thread_current() == thread_current()->pcb->main_thread) {
         pthread_exit_main();
+        //print_and_exit(f, 0);
         break;
       }
       pthread_exit();

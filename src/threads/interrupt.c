@@ -344,7 +344,12 @@ void intr_handler(struct intr_frame* frame) {
          condition.  Ignore it. */
   } else
     unexpected_interrupt(frame);
-
+  //TODO: part of process_exit, not sure if correct
+  if (is_trap_from_userspace(frame)) {
+    if (thread_current()->pcb->is_dying) {
+      pthread_exit();
+    }
+  }
   /* Complete the processing of an external interrupt. */
   if (external) {
     ASSERT(intr_get_level() == INTR_OFF);
@@ -353,9 +358,10 @@ void intr_handler(struct intr_frame* frame) {
     in_external_intr = false;
     pic_end_of_interrupt(frame->vec_no);
 
-    //TODO: part of process_exit, not sure if correct
-    if (is_trap_from_userspace(frame) && thread_current()->pcb->is_dying) {
-      pthread_exit();
+    if (is_trap_from_userspace(frame)) {
+      if (thread_current()->pcb->is_dying) {
+        pthread_exit();
+      }
     }
 
     if (yield_on_return)

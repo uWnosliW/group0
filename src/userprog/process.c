@@ -219,6 +219,7 @@ static void start_process(void* args_) {
     /* Initialize synchronization primitive ids */
     t->pcb->num_locks = 0;
     t->pcb->num_semas = 0;
+    t->pcb->num_threads = 1;
 
     t->pcb->last_installed_page = PHYS_BASE;
 
@@ -355,17 +356,20 @@ void process_exit(void) {
   }
 
   /* Exit user threads */
-  curr_thread->pcb->is_dying = true;
   lock_acquire(&curr_thread->pcb->pcb_lock);
-  while (!list_empty(&curr_thread->pcb->pthread_statuses)) {
+  curr_thread->pcb->is_dying = true;
+  /*while (!list_empty(&curr_thread->pcb->pthread_statuses)) {
     struct list_elem* e = list_pop_back(&curr_thread->pcb->pthread_statuses);
     struct pthread_status* thread = list_entry(e, struct pthread_status, elem);
     if (thread->tid != curr_thread->tid && !thread->is_dead) {
+      cond_signal(&curr_thread->pcb->exit_cv, &curr_thread->pcb->pcb_lock);
       cond_wait(&curr_thread->pcb->exit_cv, &curr_thread->pcb->pcb_lock);
     }
+  }*/
+  while (curr_thread->pcb->num_threads > 1) {
+    cond_signal(&curr_thread->pcb->exit_cv, &curr_thread->pcb->pcb_lock);
+    cond_wait(&curr_thread->pcb->exit_cv, &curr_thread->pcb->pcb_lock);
   }
-  lock_release(&curr_thread->pcb->pcb_lock);
-
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
   pd = curr_thread->pcb->pagedir;
@@ -941,6 +945,7 @@ tid_t pthread_execute(stub_fun sf, pthread_fun tf, void* arg) {
 
   sema_down(&thread_status->finished);
   free(thread_arg);
+  pcb->num_threads++;
 
   lock_release(&pcb->pcb_lock);
   return tid;
@@ -1079,7 +1084,7 @@ void pthread_exit(void) {
   pagedir_clear_page(pcb->pagedir, t->user_stack);
   palloc_free_page(t->kpage_ptr);
   //arc_drop_call_cl(thread_status, NULL);
-
+  pcb->num_threads--;
   lock_release(&pcb->pcb_lock);
   thread_exit();
 }
@@ -1113,16 +1118,13 @@ void pthread_exit_main(void) {
   for (e = list_begin(&pcb->pthread_statuses); e != list_end(&pcb->pthread_statuses);
        e = list_next(e)) {
     thread_status = list_entry(e, struct pthread_status, elem);
-    if (t->tid != thread_status->tid && !thread_status->joined) {
+    if (t->tid != thread_status->tid && !thread_status->joined && !thread_status->is_dead) {
       cond_wait(&t->pcb->exit_cv, &t->pcb->pcb_lock);
       //lock_release(&t->pcb->pcb_lock);
       //pthread_join(thread_status->tid);
       //lock_acquire(&t->pcb->pcb_lock);
     }
   }
+  cond_signal(&t->pcb->exit_cv, &t->pcb->pcb_lock);
   lock_release(&t->pcb->pcb_lock);
-
-  // TODO, not sure if we need to account for other exit codes
-  printf("%s: exit(%d)\n", thread_current()->pcb->process_name, 0);
-  process_exit();
 }

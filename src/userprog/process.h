@@ -41,6 +41,7 @@ struct process {
   struct list child_processes;   /* List of process_status's of the children processes */
   struct list fd_table;          /* List of fd_table_entry_ts, relevant in file syscalls */
 
+  int num_threads;
   int num_locks;                     /* Number of locks this process has created */
   int num_semas;                     /* Number of semaphores this process has created */
   struct lock* locks[128];           /* List of pointers to user locks */
