@@ -1115,7 +1115,7 @@ void pthread_exit_main(void) {
   sema_up(&thread_status->finished);
 
   // wait for all other threads to finish first
-  for (e = list_begin(&pcb->pthread_statuses); e != list_end(&pcb->pthread_statuses);
+  /*for (e = list_begin(&pcb->pthread_statuses); e != list_end(&pcb->pthread_statuses);
        e = list_next(e)) {
     thread_status = list_entry(e, struct pthread_status, elem);
     if (t->tid != thread_status->tid && !thread_status->joined && !thread_status->is_dead) {
@@ -1124,7 +1124,15 @@ void pthread_exit_main(void) {
       //pthread_join(thread_status->tid);
       //lock_acquire(&t->pcb->pcb_lock);
     }
+  }*/
+  while (t->pcb->num_threads > 1) {
+    cond_wait(&t->pcb->exit_cv, &t->pcb->pcb_lock);
   }
   cond_signal(&t->pcb->exit_cv, &t->pcb->pcb_lock);
   lock_release(&t->pcb->pcb_lock);
+
+  if (!t->pcb->is_dying) {
+    printf("%s: exit(%d)\n", t->pcb->process_name, 0);
+    process_exit();
+  }
 }
